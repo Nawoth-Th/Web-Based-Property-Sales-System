@@ -277,16 +277,20 @@ GET    /api/offers/buyer/{buyerId}      # Get offers by buyer
 ## 🖼️ Screenshots
 
 ### Homepage
-![Homepage](https://via.placeholder.com/800x400/2563eb/ffffff?text=Property+Management+System+Homepage)
+![Homepage](https://github.com/user-attachments/assets/49d020f3-dd5c-4156-9bba-21e9648a34e7)
+
 
 ### Property Listings
-![Property Listings](https://via.placeholder.com/800x400/10b981/ffffff?text=Property+Listings+with+Search+and+Filters)
+![Property Listings](https://github.com/user-attachments/assets/73e63b6d-a266-48e9-a72c-9bec1295e150)
+
 
 ### Dashboard
-![Dashboard](https://via.placeholder.com/800x400/f59e0b/ffffff?text=User+Dashboard+with+Property+Management)
+![Dashboard](https://github.com/user-attachments/assets/a6014c01-9f22-4a46-8b14-f1fe29b9d792)
+
 
 ### Booking System
-![Booking System](https://via.placeholder.com/800x400/ef4444/ffffff?text=Property+Booking+and+Appointment+Scheduling)
+![Booking System](https://github.com/user-attachments/assets/b5802aed-f3ec-4b5c-ac45-43ab4225e839)
+
 
 ## 🎓 Educational Value
 
@@ -327,12 +331,14 @@ This project serves as an excellent example of:
 ## 👥 Team
 
 **Project Group 2025-Y2-S1-MLB-B7G2-01**
-**Pathirana P.M.K.H - IT24101797**
-**Wathuthanthiri W.M.R.V - IT24101677**
-**Maddegoda M.V.S - IT24101739**
-**Wijayawardena D.K.I - IT24101667**
-**Dissanayake D.M.N.T - IT24102280**
-**Gunasinghe N.A.L - IT24101721**
+
+| Name | IT Number |
+|------|----------|
+| **Pathirana P.M.K.H** | **IT24101797 |
+| **Wathuthanthiri W.M.R.V** | **IT24101677 |
+| **Maddegoda M.V.S** | **IT24101739** |
+| **Dissanayake D.M.N.T** | **IT24102280** |
+| **Gunasinghe N.A.L** | **IT24101721** |
 
 - **Backend Development**: Java Spring Boot, MySQL, REST APIs
 - **Frontend Development**: HTML5, CSS3, JavaScript ES6+
