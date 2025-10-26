@@ -334,8 +334,8 @@ This project serves as an excellent example of:
 
 | Name | IT Number |
 |------|----------|
-| **Pathirana P.M.K.H** | **IT24101797 |
-| **Wathuthanthiri W.M.R.V** | **IT24101677 |
+| **Pathirana P.M.K.H** | **IT24101797** |
+| **Wathuthanthiri W.M.R.V** | **IT24101677** |
 | **Maddegoda M.V.S** | **IT24101739** |
 | **Dissanayake D.M.N.T** | **IT24102280** |
 | **Gunasinghe N.A.L** | **IT24101721** |
