@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rental Agreements - PropertyHub</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="header">
+    <nav class="nav">
+        <a href="/" class="logo">PropertyHub</a>
+        <ul class="nav-links">
+            <li><a href="/">Home</a></li>
+            <li><a href="/dashboard.html">Dashboard</a></li>
+            <li><a href="#" id="userInfo"></a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+    </nav>
+</header>
+
+<main class="container">
+    <!-- Added access denied message for unauthorized users -->
+    <div id="accessDenied" class="hidden">
+        <div class="error" style="text-align: center; padding: 40px;">
+            <h2>Access Denied</h2>
+            <p>You do not have permission to access rental agreements.</p>
+            <p>This section is only available for Landlords, Agents, Tenants, and Administrators.</p>
+            <a href="/dashboard.html" class="btn btn-primary">Go to Dashboard</a>
+        </div>
+    </div>
+
+    <div id="agreementsContent" class="hidden">
+        <h1>Rental Agreements Management</h1>
+
+        <!-- Pre-built Agreement Templates Section -->
+        <section class="agreement-templates" id="templatesSection">
+            <h2><i class="fas fa-file-contract"></i> Pre-built Agreement Templates</h2>
+            <p>Select a template to create a new rental agreement</p>
+            <div class="templates-grid">
+                <div class="template-card" onclick="selectTemplate('standard')">
+                    <h3>Standard Rental Agreement</h3>
+                    <p>Basic rental terms for residential properties</p>
+                    <ul>
+                        <li>✓ Standard lease terms</li>
+                        <li>✓ Security deposit clause</li>
+                        <li>✓ Maintenance responsibilities</li>
+                        <li>✓ Termination conditions</li>
+                    </ul>
+                    <button class="btn btn-primary">Use Template</button>
+                </div>
+                <div class="template-card" onclick="selectTemplate('commercial')">
+                    <h3>Commercial Lease Agreement</h3>
+                    <p>For business and commercial properties</p>
+                    <ul>
+                        <li>✓ Commercial terms</li>
+                        <li>✓ Business use clauses</li>
+                        <li>✓ Liability provisions</li>
+                        <li>✓ Renewal options</li>
+                    </ul>
+                    <button class="btn btn-primary">Use Template</button>
+                </div>
+                <div class="template-card" onclick="selectTemplate('shortterm')">
+                    <h3>Short-term Rental Agreement</h3>
+                    <p>For vacation or temporary rentals</p>
+                    <ul>
+                        <li>✓ Flexible duration</li>
+                        <li>✓ Furnished property terms</li>
+                        <li>✓ Utilities included</li>
+                        <li>✓ Quick termination</li>
+                    </ul>
+                    <button class="btn btn-primary">Use Template</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Create Agreement Section -->
+        <section class="create-agreement hidden" id="createAgreementSection">
+            <h2>Create New Rental Agreement</h2>
+            <form id="agreementForm">
+                <div class="form-group">
+                    <label for="agreementTemplate">Selected Template</label>
+                    <input type="text" id="agreementTemplate" class="form-control" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="propertyId">Property</label>
+                    <select id="propertyId" class="form-control" required>
+                        <option value="">Select a property</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="tenantId">Tenant</label>
+                    <select id="tenantId" class="form-control" required>
+                        <option value="">Select a tenant</option>
+                    </select>
+                </div>
+                <!-- Landlord ID is now auto-populated from logged-in user -->
+                <div class="form-group">
+                    <label for="rent">Monthly Rent Amount</label>
+                    <input type="number" id="rent" class="form-control" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="durationMonths">Duration (Months)</label>
+                    <input type="number" id="durationMonths" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="startDate">Start Date</label>
+                    <input type="date" id="startDate" class="form-control" required>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Create & Send Agreement</button>
+                    <button type="button" class="btn btn-outline" onclick="cancelAgreementCreation()">Cancel</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Existing Agreements Section -->
+        <section class="agreements-list">
+            <div class="section-header">
+                <h2>My Rental Agreements</h2>
+                <div class="filter-controls">
+                    <select id="agreementStatusFilter" class="form-control" onchange="loadAgreements()">
+                        <option value="">All Agreements</option>
+                        <option value="ACTIVE">Active</option>
+                        <option value="EXPIRED">Expired</option>
+                        <option value="TERMINATED">Terminated</option>
+                    </select>
+                    <button class="btn btn-warning" onclick="showExpiringAgreements()"><i class="fas fa-exclamation-triangle"></i> Expiring Soon</button>
+                </div>
+            </div>
+
+            <div id="agreementsLoading" class="loading hidden">Loading agreements...</div>
+            <div id="agreementsError" class="error hidden"></div>
+            <div id="agreementsList" class="agreements-grid"></div>
+        </section>
+
+        <!-- Agreement Details Modal -->
+        <div id="agreementModal" class="modal hidden">
+            <div class="modal-content large">
+                <div class="modal-header">
+                    <h2>Rental Agreement Details</h2>
+                    <button class="close-btn" onclick="closeAgreementModal()">×</button>
+                </div>
+                <div id="agreementDetails" class="agreement-document"></div>
+                <div class="modal-actions">
+                    <button class="btn btn-primary" onclick="downloadAgreement()"><i class="fas fa-download"></i> Download PDF</button>
+                    <button class="btn btn-outline" onclick="printAgreement()"><i class="fas fa-print"></i> Print</button>
+                    <button class="btn btn-secondary" onclick="closeAgreementModal()">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Extend Agreement Modal -->
+        <div id="extendModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Extend Rental Agreement</h2>
+                    <button class="close-btn" onclick="closeExtendModal()">×</button>
+                </div>
+                <form id="extendForm">
+                    <div class="form-group">
+                        <label for="additionalMonths">Additional Months</label>
+                        <input type="number" id="additionalMonths" class="form-control" min="1" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Extend Agreement</button>
+                        <button type="button" class="btn btn-outline" onclick="closeExtendModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="/js/script.js"></script>
+<script>
+    let currentUser = null;
+    let currentAgreementId = null;
+    let selectedTemplate = null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        checkAuth();
+
+        if (currentUser && hasAgreementAccess(currentUser.role)) {
+            loadAgreements();
+            loadPropertiesForAgreement();
+            loadTenantsForAgreement();
+        }
+
+        document.getElementById('agreementForm').addEventListener('submit', handleAgreementSubmit);
+        document.getElementById('extendForm').addEventListener('submit', handleExtendSubmit);
+    });
+
+    function hasAgreementAccess(role) {
+        const allowedRoles = ['SELLER', 'AGENT', 'ADMIN', 'RENTER'];
+        return allowedRoles.includes(role);
+    }
+
+    function checkAuth() {
+        const userStr = localStorage.getItem('currentUser');
+        if (!userStr) {
+            window.location.href = '/login.html';
+            return;
+        }
+
+        currentUser = JSON.parse(userStr);
+        document.getElementById('userInfo').textContent = `${currentUser.username} (${currentUser.role})`;
+
+        if (!hasAgreementAccess(currentUser.role)) {
+            document.getElementById('accessDenied').classList.remove('hidden');
+            document.getElementById('agreementsContent').classList.add('hidden');
+        } else {
+            document.getElementById('accessDenied').classList.add('hidden');
+            document.getElementById('agreementsContent').classList.remove('hidden');
+
+            if (currentUser.role === 'RENTER') {
+                const templatesSection = document.getElementById('templatesSection');
+                if (templatesSection) {
+                    templatesSection.style.display = 'none';
+                }
+            }
+        }
+    }
+
+    async function loadPropertiesForAgreement() {
+        try {
+            console.log('[v0] Loading properties for agreement form...');
+            console.log('[v0] Current user:', currentUser);
+            console.log('[v0] User ID:', currentUser.id);
+            console.log('[v0] User role:', currentUser.role);
+            let properties = [];
+
+            // Fetch properties based on user role
+            if (currentUser.role === 'SELLER' || currentUser.role === 'AGENT') {
+                console.log('[v0] Fetching rental properties for seller/agent:', currentUser.id);
+                properties = await fetchRentalPropertiesBySeller(currentUser.id);
+            } else if (currentUser.role === 'ADMIN') {
+                console.log('[v0] Fetching all rental properties for admin');
+                properties = await fetchAllRentalProperties();
+            } else {
+                console.log('[v0] Fetching all rental properties for other role:', currentUser.role);
+                properties = await fetchAllRentalProperties();
+            }
+
+            // Ensure properties is an array
+            if (!Array.isArray(properties)) {
+                console.warn('[v0] Properties is not an array:', properties);
+                properties = [];
+            }
+
+            console.log('[v0] Properties loaded:', properties.length);
+            console.log('[v0] All properties:', properties);
+
+            const propertySelect = document.getElementById('propertyId');
+            if (!propertySelect) {
+                console.error('[v0] Property select element not found');
+                return;
+            }
+            
+            propertySelect.innerHTML = '<option value="">Select a property</option>';
+
+            // Filter for rental properties only (safety measure since backend should return only rental properties)
+            const rentalProperties = properties.filter(p => p && p.type === 'RENT');
+            console.log('[v0] Rental properties:', rentalProperties.length);
+            console.log('[v0] Rental properties details:', rentalProperties);
+            
+            // If no rental properties found, show all properties for debugging
+            if (rentalProperties.length === 0) {
+                console.log('[v0] No rental properties found, showing all properties for debugging:', properties);
+            }
+
+            rentalProperties.forEach(property => {
+                const option = document.createElement('option');
+                option.value = property.id;
+                option.textContent = `${property.title} - ${property.location} (Rs ${property.rentAmount || 0}/month)`;
+                propertySelect.appendChild(option);
+            });
+
+            if (rentalProperties.length === 0) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'No rental properties available';
+                option.disabled = true;
+                propertySelect.appendChild(option);
+            }
+        } catch (error) {
+            console.error('[v0] Failed to load properties:', error);
+            const propertySelect = document.getElementById('propertyId');
+            if (propertySelect) {
+                propertySelect.innerHTML = '<option value="">Error loading properties</option>';
+            }
+            // Don't show alert, just log the error
+            console.warn('[v0] Properties loading failed, continuing without properties');
+        }
+    }
+
+    async function loadTenantsForAgreement() {
+        try {
+            console.log('[v0] Loading tenants for agreement form...');
+
+            // Fetch users with RENTER role
+            const tenants = await apiCall('/users/role/RENTER');
+            
+            // Ensure tenants is an array
+            if (!Array.isArray(tenants)) {
+                console.warn('[v0] Tenants is not an array:', tenants);
+                throw new Error('Invalid tenants response');
+            }
+            
+            console.log('[v0] Tenants loaded:', tenants.length);
+
+            const tenantSelect = document.getElementById('tenantId');
+            if (!tenantSelect) {
+                console.error('[v0] Tenant select element not found');
+                return;
+            }
+            
+            tenantSelect.innerHTML = '<option value="">Select a tenant</option>';
+
+            tenants.forEach(tenant => {
+                const option = document.createElement('option');
+                option.value = tenant.id;
+                option.textContent = `${tenant.username} (${tenant.email})`;
+                tenantSelect.appendChild(option);
+            });
+
+            if (tenants.length === 0) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'No tenants available';
+                option.disabled = true;
+                tenantSelect.appendChild(option);
+            }
+        } catch (error) {
+            console.error('[v0] Failed to load tenants:', error);
+            // Try alternative role name
+            try {
+                console.log('[v0] Trying alternative role name TENANT...');
+                const tenants = await apiCall('/users/role/TENANT');
+                
+                if (!Array.isArray(tenants)) {
+                    console.warn('[v0] Tenants is not an array:', tenants);
+                    throw new Error('Invalid tenants response');
+                }
+                
+                console.log('[v0] Tenants loaded with TENANT role:', tenants.length);
+
+                const tenantSelect = document.getElementById('tenantId');
+                if (!tenantSelect) {
+                    console.error('[v0] Tenant select element not found');
+                    return;
+                }
+                
+                tenantSelect.innerHTML = '<option value="">Select a tenant</option>';
+
+                tenants.forEach(tenant => {
+                    const option = document.createElement('option');
+                    option.value = tenant.id;
+                    option.textContent = `${tenant.username} (${tenant.email})`;
+                    tenantSelect.appendChild(option);
+                });
+
+                if (tenants.length === 0) {
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = 'No tenants available';
+                    option.disabled = true;
+                    tenantSelect.appendChild(option);
+                }
+            } catch (secondError) {
+                console.error('[v0] Failed to load tenants with both role names:', secondError);
+                const tenantSelect = document.getElementById('tenantId');
+                if (tenantSelect) {
+                    tenantSelect.innerHTML = '<option value="">Error loading tenants</option>';
+                }
+                // Don't show alert, just log the error
+                console.warn('[v0] Tenants loading failed, continuing without tenants');
+            }
+        }
+    }
+
+    function selectTemplate(template) {
+        if (currentUser.role === 'RENTER') {
+            alert('Only landlords and agents can create rental agreements.');
+            return;
+        }
+
+        selectedTemplate = template;
+        const templateNames = {
+            'standard': 'Standard Rental Agreement',
+            'commercial': 'Commercial Lease Agreement',
+            'shortterm': 'Short-term Rental Agreement'
+        };
+
+        document.getElementById('agreementTemplate').value = templateNames[template];
+        document.getElementById('createAgreementSection').classList.remove('hidden');
+        document.getElementById('createAgreementSection').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function cancelAgreementCreation() {
+        selectedTemplate = null;
+        document.getElementById('createAgreementSection').classList.add('hidden');
+        document.getElementById('agreementForm').reset();
+    }
+
+    async function handleAgreementSubmit(e) {
+        e.preventDefault();
+
+        try {
+            const agreementData = {
+                propertyId: parseInt(document.getElementById('propertyId').value),
+                tenantId: parseInt(document.getElementById('tenantId').value),
+                landlordId: currentUser.id, // Auto-populate from logged-in user
+                rent: parseFloat(document.getElementById('rent').value),
+                durationMonths: parseInt(document.getElementById('durationMonths').value),
+                startDate: document.getElementById('startDate').value
+            };
+
+            await createRentalAgreement(agreementData);
+            alert('Rental agreement created and sent successfully!');
+            cancelAgreementCreation();
+            loadAgreements();
+        } catch (error) {
+            alert('Failed to create agreement: ' + error.message);
+        }
+    }
+
+    async function loadAgreements() {
+        const loadingEl = document.getElementById('agreementsLoading');
+        const errorEl = document.getElementById('agreementsError');
+        const container = document.getElementById('agreementsList');
+
+        try {
+            if (loadingEl) loadingEl.classList.remove('hidden');
+            if (errorEl) errorEl.classList.add('hidden');
+
+            const filterEl = document.getElementById('agreementStatusFilter');
+            const filter = filterEl ? filterEl.value : '';
+            let agreements = [];
+
+            if (currentUser.role === 'ADMIN') {
+                agreements = filter ? await fetchRentalAgreementsByStatus(filter) : await fetchAllRentalAgreements();
+            } else if (currentUser.role === 'SELLER' || currentUser.role === 'AGENT') {
+                agreements = await fetchRentalAgreementsByLandlord(currentUser.id);
+                if (filter) {
+                    agreements = agreements.filter(agreement => agreement.status === filter);
+                }
+            } else {
+                agreements = await fetchRentalAgreementsByTenant(currentUser.id);
+                if (filter) {
+                    agreements = agreements.filter(agreement => agreement.status === filter);
+                }
+            }
+
+            // Ensure agreements is an array
+            if (!Array.isArray(agreements)) {
+                console.warn('[v0] Agreements is not an array:', agreements);
+                agreements = [];
+            }
+
+            displayAgreements(agreements);
+            if (loadingEl) loadingEl.classList.add('hidden');
+        } catch (error) {
+            console.error('Failed to load agreements:', error);
+            if (loadingEl) loadingEl.classList.add('hidden');
+            if (errorEl) {
+            errorEl.textContent = 'Failed to load agreements: ' + error.message;
+            errorEl.classList.remove('hidden');
+            }
+        }
+    }
+
+    function displayAgreements(agreements) {
+        const container = document.getElementById('agreementsList');
+        
+        if (!container) {
+            console.error('[v0] Agreements list container not found');
+            return;
+        }
+
+        // Ensure agreements is an array
+        if (!Array.isArray(agreements)) {
+            console.warn('[v0] Agreements is not an array:', agreements);
+            agreements = [];
+        }
+
+        if (agreements.length === 0) {
+            container.innerHTML = '<p class="text-center">No rental agreements found.</p>';
+            return;
+        }
+
+        const isLandlordView = currentUser.role === 'SELLER' || currentUser.role === 'AGENT' || currentUser.role === 'ADMIN';
+
+        container.innerHTML = agreements.map(agreement => {
+            // Handle null/undefined agreement
+            if (!agreement) {
+                console.warn('[v0] Null agreement found');
+                return '';
+            }
+
+            const endDate = calculateRentalEndDate(agreement.startDate, agreement.durationMonths);
+            const daysLeft = getDaysUntilExpiry(agreement.startDate, agreement.durationMonths);
+
+            return `
+                    <div class="agreement-card">
+                        <div class="agreement-header">
+                            <h3>Agreement #${agreement.id || 'N/A'}</h3>
+                            <span class="status-badge status-${(agreement.status || 'UNKNOWN').toLowerCase()}">${formatRentalStatus(agreement.status)}</span>
+                        </div>
+                        <div class="agreement-details">
+                            <p><strong>Property:</strong> ${agreement.propertyTitle || 'N/A'}</p>
+                            <p><strong>Tenant:</strong> ${agreement.tenantUsername || 'N/A'}</p>
+                            <p><strong>Landlord:</strong> ${agreement.landlordUsername || 'N/A'}</p>
+                            <p><strong>Monthly Rent:</strong> Rs ${(agreement.rent || 0).toLocaleString()}</p>
+                            <p><strong>Start Date:</strong> ${agreement.startDate ? new Date(agreement.startDate).toLocaleDateString() : 'N/A'}</p>
+                            <p><strong>End Date:</strong> ${endDate ? endDate.toLocaleDateString() : 'N/A'}</p>
+                            ${agreement.status === 'ACTIVE' && daysLeft > 0 ?
+                `<p class="expiry-warning ${daysLeft <= 30 ? 'urgent' : ''}">
+                                    <strong>Days Remaining:</strong> ${daysLeft} days
+                                </p>` : ''}
+                        </div>
+                        <div class="agreement-actions">
+                            ${currentUser.role === 'ADMIN' ? `
+                                <button class="btn btn-secondary" onclick="editRentalAgreement(${agreement.id || 0})"><i class="fas fa-edit"></i> Edit</button>
+                            ` : ''}
+                            <button class="btn btn-primary" onclick="viewAgreementDetails(${agreement.id || 0})"><i class="fas fa-file-contract"></i> View Full Agreement</button>
+                            ${agreement.status === 'ACTIVE' ? `
+                                <button class="btn btn-success" onclick="openExtendModal(${agreement.id || 0})"><i class="fas fa-clock"></i> Extend</button>
+                                ${isLandlordView ? `
+                                    <button class="btn btn-danger" onclick="terminateAgreement(${agreement.id || 0})"><i class="fas fa-times"></i> Terminate</button>
+                                ` : ''}
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+        }).join('');
+    }
+
+    async function viewAgreementDetails(agreementId) {
+        try {
+            const agreement = await fetchRentalAgreementById(agreementId);
+            const endDate = calculateRentalEndDate(agreement.startDate, agreement.durationMonths);
+
+            document.getElementById('agreementDetails').innerHTML = `
+                    <div class="agreement-document-content">
+                        <h1>RENTAL AGREEMENT</h1>
+                        <p class="agreement-id">Agreement #${agreement.id}</p>
+
+                        <section>
+                            <h3>PARTIES</h3>
+                            <p><strong>Landlord:</strong> ${agreement.landlordUsername} (ID: ${agreement.landlordId})</p>
+                            <p><strong>Tenant:</strong> ${agreement.tenantUsername} (ID: ${agreement.tenantId})</p>
+                        </section>
+
+                        <section>
+                            <h3>PROPERTY DETAILS</h3>
+                            <p><strong>Property:</strong> ${agreement.propertyTitle}</p>
+                            <p><strong>Location:</strong> N/A</p>
+                            <p><strong>Property ID:</strong> ${agreement.propertyId}</p>
+                        </section>
+
+                        <section>
+                            <h3>RENTAL TERMS</h3>
+                            <p><strong>Monthly Rent:</strong> Rs ${agreement.rent?.toLocaleString()}</p>
+                            <p><strong>Duration:</strong> ${agreement.durationMonths} months</p>
+                            <p><strong>Start Date:</strong> ${new Date(agreement.startDate).toLocaleDateString()}</p>
+                            <p><strong>End Date:</strong> ${endDate.toLocaleDateString()}</p>
+                            <p><strong>Status:</strong> ${formatRentalStatus(agreement.status)}</p>
+                        </section>
+
+                        <section>
+                            <h3>STANDARD TERMS & CONDITIONS</h3>
+                            <ol>
+                                <li>The tenant agrees to pay rent on or before the 1st of each month.</li>
+                                <li>A security deposit equal to one month's rent is required.</li>
+                                <li>The tenant is responsible for maintaining the property in good condition.</li>
+                                <li>The landlord is responsible for major repairs and structural maintenance.</li>
+                                <li>Either party may terminate this agreement with 30 days written notice.</li>
+                                <li>Subletting is not permitted without written consent from the landlord.</li>
+                                <li>The tenant must comply with all local laws and regulations.</li>
+                            </ol>
+                        </section>
+
+                        <section class="signatures">
+                            <div class="signature-block">
+                                <p>_________________________</p>
+                                <p>Landlord Signature</p>
+                                <p>Date: ${new Date(agreement.createdAt).toLocaleDateString()}</p>
+                            </div>
+                            <div class="signature-block">
+                                <p>_________________________</p>
+                                <p>Tenant Signature</p>
+                                <p>Date: ${new Date(agreement.createdAt).toLocaleDateString()}</p>
+                            </div>
+                        </section>
+                    </div>
+                `;
+
+            document.getElementById('agreementModal').classList.remove('hidden');
+        } catch (error) {
+            alert('Failed to load agreement details: ' + error.message);
+        }
+    }
+
+    function closeAgreementModal() {
+        document.getElementById('agreementModal').classList.add('hidden');
+    }
+
+    function downloadAgreement() {
+        alert('PDF download feature will be implemented with backend support.');
+    }
+
+    function printAgreement() {
+        window.print();
+    }
+
+    function openExtendModal(agreementId) {
+        currentAgreementId = agreementId;
+        document.getElementById('extendModal').classList.remove('hidden');
+    }
+
+    function closeExtendModal() {
+        currentAgreementId = null;
+        document.getElementById('extendModal').classList.add('hidden');
+        document.getElementById('extendForm').reset();
+    }
+
+    async function handleExtendSubmit(e) {
+        e.preventDefault();
+
+        try {
+            const additionalMonths = parseInt(document.getElementById('additionalMonths').value);
+            await extendRentalAgreement(currentAgreementId, additionalMonths);
+            alert('Agreement extended successfully!');
+            closeExtendModal();
+            loadAgreements();
+        } catch (error) {
+            alert('Failed to extend agreement: ' + error.message);
+        }
+    }
+
+    async function terminateAgreement(agreementId) {
+        if (confirm('Are you sure you want to terminate this rental agreement?')) {
+            try {
+                await updateRentalAgreementStatus(agreementId, 'TERMINATED');
+                alert('Agreement terminated successfully.');
+                loadAgreements();
+            } catch (error) {
+                alert('Failed to terminate agreement: ' + error.message);
+            }
+        }
+    }
+
+    async function showExpiringAgreements() {
+        try {
+            const expiringAgreements = await fetchExpiringAgreements(30);
+            if (expiringAgreements.length === 0) {
+                alert('No agreements expiring in the next 30 days.');
+            } else {
+                alert(`${expiringAgreements.length} agreement(s) expiring in the next 30 days. Check the list below.`);
+                displayAgreements(expiringAgreements);
+            }
+        } catch (error) {
+            alert('Failed to fetch expiring agreements: ' + error.message);
+        }
+    }
+
+    let currentAgreement = null;
+
+    async function editRentalAgreement(agreementId) {
+        try {
+            // Fetch agreement details
+            currentAgreement = await apiCall(`/rental-agreements/${agreementId}`);
+            
+            // Create edit modal
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>Edit Rental Agreement</h2>
+                        <span class="close" onclick="closeModal(this)">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <form id="editAgreementForm">
+                            <div class="form-group">
+                                <label for="editAgreementRent">Monthly Rent (Rs):</label>
+                                <input type="number" id="editAgreementRent" value="${currentAgreement.rent}" step="0.01" min="0" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="editAgreementDuration">Duration (Months):</label>
+                                <input type="number" id="editAgreementDuration" value="${currentAgreement.durationMonths}" min="1" max="120" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="editAgreementStartDate">Start Date:</label>
+                                <input type="date" id="editAgreementStartDate" value="${currentAgreement.startDate}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="editAgreementStatus">Status:</label>
+                                <select id="editAgreementStatus" required>
+                                    <option value="PENDING" ${currentAgreement.status === 'PENDING' ? 'selected' : ''}>Pending</option>
+                                    <option value="ACTIVE" ${currentAgreement.status === 'ACTIVE' ? 'selected' : ''}>Active</option>
+                                    <option value="TERMINATED" ${currentAgreement.status === 'TERMINATED' ? 'selected' : ''}>Terminated</option>
+                                    <option value="EXPIRED" ${currentAgreement.status === 'EXPIRED' ? 'selected' : ''}>Expired</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal(this)">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="saveAgreementEdit(${agreementId})">Save Changes</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            modal.style.display = 'block';
+            
+        } catch (error) {
+            alert('Failed to load agreement details: ' + error.message);
+        }
+    }
+
+    async function saveAgreementEdit(agreementId) {
+        try {
+            const rent = parseFloat(document.getElementById('editAgreementRent').value);
+            const durationMonths = parseInt(document.getElementById('editAgreementDuration').value);
+            const startDate = document.getElementById('editAgreementStartDate').value;
+            const status = document.getElementById('editAgreementStatus').value;
+            
+            // Update agreement details
+            await apiCall(`/rental-agreements/${agreementId}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    propertyId: currentAgreement.propertyId,
+                    tenantId: currentAgreement.tenantId,
+                    landlordId: currentAgreement.landlordId,
+                    rent: rent,
+                    durationMonths: durationMonths,
+                    startDate: startDate
+                })
+            });
+            
+            // Update status if changed
+            if (status !== currentAgreement.status) {
+                await apiCall(`/rental-agreements/${agreementId}/status`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ status: status })
+                });
+            }
+            
+            alert('Rental agreement updated successfully!');
+            closeModal(document.querySelector('.modal'));
+            loadAgreements();
+            
+        } catch (error) {
+            alert('Failed to update rental agreement: ' + error.message);
+        }
+    }
+
+    function closeModal(element) {
+        const modal = element.closest('.modal');
+        if (modal) {
+            modal.remove();
+        }
+    }
+
+    function logout() {
+        localStorage.removeItem('currentUser');
+        window.location.href = '/';
+    }
+
+    // Helper functions
+    function calculateRentalEndDate(startDate, durationMonths) {
+        if (!startDate || !durationMonths) return null;
+        const date = new Date(startDate);
+        date.setMonth(date.getMonth() + durationMonths);
+        return date;
+    }
+
+    function getDaysUntilExpiry(startDate, durationMonths) {
+        if (!startDate || !durationMonths) return 0;
+        const endDate = calculateRentalEndDate(startDate, durationMonths);
+        if (!endDate) return 0;
+        const today = new Date();
+        const timeDifference = endDate.getTime() - today.getTime();
+        const daysDifference = timeDifference / (1000 * 3600 * 24);
+        return Math.ceil(daysDifference);
+    }
+
+    function formatRentalStatus(status) {
+        if (!status) return 'Unknown';
+        const statusMap = {
+            'ACTIVE': 'Active',
+            'EXPIRED': 'Expired',
+            'TERMINATED': 'Terminated'
+        };
+        return statusMap[status] || status;
+    }
+
+    async function fetchRentalAgreementsByStatus(status) {
+        return await apiCall(`/rental-agreements/status/${status}`);
+    }
+
+    async function fetchAllRentalAgreements() {
+        return await apiCall('/rental-agreements');
+    }
+
+    async function fetchRentalAgreementsByLandlord(landlordId) {
+        return await apiCall(`/rental-agreements/landlord/${landlordId}`);
+    }
+
+    async function fetchRentalAgreementsByTenant(tenantId) {
+        return await apiCall(`/rental-agreements/tenant/${tenantId}`);
+    }
+
+    async function fetchRentalAgreementById(agreementId) {
+        return await apiCall(`/rental-agreements/${agreementId}`);
+    }
+
+    async function createRentalAgreement(agreementData) {
+        return await apiCall('/rental-agreements', {
+            method: 'POST',
+            body: JSON.stringify(agreementData)
+        });
+    }
+
+    async function extendRentalAgreement(agreementId, additionalMonths) {
+        return await apiCall(`/rental-agreements/${agreementId}/extend`, {
+            method: 'PATCH',
+            body: JSON.stringify({ additionalMonths })
+        });
+    }
+
+    async function updateRentalAgreementStatus(agreementId, status) {
+        return await apiCall(`/rental-agreements/${agreementId}/status`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status })
+        });
+    }
+
+    async function fetchExpiringAgreements(days) {
+        return await apiCall(`/rental-agreements/expiring?days=${days}`);
+    }
+
+    async function fetchPropertiesBySeller(sellerId) {
+        return await apiCall(`/properties/seller/${sellerId}`);
+    }
+
+    async function fetchRentalPropertiesBySeller(sellerId) {
+        return await apiCall(`/properties/seller/${sellerId}/rental`);
+    }
+
+    async function fetchAllProperties() {
+        return await apiCall('/properties');
+    }
+
+    async function fetchAllRentalProperties() {
+        return await apiCall('/properties/rental');
+    }
+
+    async function apiCall(url, options = {}) {
+        const config = {
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers,
+            },
+            ...options,
+        };
+
+        try {
+            const response = await fetch(`/api${url}`, config);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || `HTTP error! status: ${response.status}`);
+            }
+
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                return await response.json();
+            } else {
+                return await response.text();
+            }
+        } catch (error) {
+            console.error('API call failed:', error);
+            throw error;
+        }
+    }
+</script>
+
+<footer class="footer">
+    <div class="container">
+        <p>Copyright 2025 - Project Group 2025-Y2-S1-MLB-B7G2-01</p>
+    </div>
+</footer>
+</body>
+</html>

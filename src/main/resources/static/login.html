@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - PropertyHub</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="header">
+    <nav class="nav">
+        <a href="/" class="logo">PropertyHub</a>
+        <ul class="nav-links">
+            <li><a href="/">Home</a></li>
+            <li><a href="/offers.html">Offers</a></li>
+            <li><a href="/agreements.html">Agreements</a></li>
+            <li><a href="/login.html">Login</a></li>
+            <li><a href="/register.html">Register</a></li>
+        </ul>
+    </nav>
+</header>
+
+<main class="container">
+    <div class="form-container">
+        <h1 class="form-title">Login to PropertyHub</h1>
+
+        <div id="error" class="error hidden"></div>
+        <div id="success" class="success hidden"></div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
+            </div>
+        </form>
+
+        <div class="text-center mt-4">
+            <p>Don't have an account? <a href="/register.html">Register here</a></p>
+        </div>
+
+        <div class="text-center mt-4">
+            <h3>Demo Accounts</h3>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                <p><strong>Admin:</strong> admin / admin123</p>
+                <p><strong>Seller:</strong> seller / seller123</p>
+                <p><strong>Buyer:</strong> buyer / buyer123</p>
+                <p><strong>Agent:</strong> agent / agent123</p>
+            </div>
+            <div style="margin-top: 15px;">
+                <button type="button" class="btn btn-outline" onclick="quickLogin('admin', 'admin123')" style="margin: 5px;">Login as Admin</button>
+                <button type="button" class="btn btn-outline" onclick="quickLogin('seller', 'seller123')" style="margin: 5px;">Login as Seller</button>
+                <button type="button" class="btn btn-outline" onclick="quickLogin('buyer', 'buyer123')" style="margin: 5px;">Login as Buyer</button>
+                <button type="button" class="btn btn-outline" onclick="quickLogin('agent', 'agent123')" style="margin: 5px;">Login as Agent</button>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="/js/script.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const currentUser = localStorage.getItem('currentUser');
+        if (currentUser) {
+            console.log('[v0] User already logged in, redirecting to dashboard');
+            window.location.href = '/dashboard.html';
+            return;
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', handleLogin);
+    });
+
+    async function handleLogin(e) {
+        e.preventDefault();
+
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Logging in...';
+
+        try {
+            console.log('[v0] Starting login process for:', username);
+            const user = await loginUser(username, password);
+
+            console.log('[v0] Login API response:', user);
+
+            if (!user) {
+                throw new Error('No user data received from server');
+            }
+
+            if (!user.id || !user.username || !user.role) {
+                console.error('[v0] Invalid user data structure:', user);
+                throw new Error('Invalid user data received from server');
+            }
+
+            localStorage.setItem('currentUser', JSON.stringify(user));
+            console.log('[v0] User data stored in localStorage:', user);
+
+            showSuccess('Login successful! Redirecting to dashboard...');
+
+            setTimeout(() => {
+                console.log('[v0] Redirecting to dashboard...');
+                window.location.href = '/dashboard.html';
+            }, 1000);
+
+        } catch (error) {
+            console.error('[v0] Login error:', error);
+            showError('Login failed: ' + (error.message || 'Invalid username or password'));
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+        }
+    }
+
+    function showError(message) {
+        const errorDiv = document.getElementById('error');
+        errorDiv.textContent = message;
+        errorDiv.classList.remove('hidden');
+        document.getElementById('success').classList.add('hidden');
+    }
+
+    function showSuccess(message) {
+        const successDiv = document.getElementById('success');
+        successDiv.textContent = message;
+        successDiv.classList.remove('hidden');
+        document.getElementById('error').classList.add('hidden');
+    }
+
+    function quickLogin(username, password) {
+        document.getElementById('username').value = username;
+        document.getElementById('password').value = password;
+        const form = document.getElementById('loginForm');
+        if (form.requestSubmit) {
+            form.requestSubmit();
+        } else {
+            form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+        }
+    }
+</script>
+
+<footer class="footer">
+    <div class="container">
+        <p>Copyright 2025 - Project Group 2025-Y2-S1-MLB-B7G2-01</p>
+    </div>
+</footer>
+</body>
+</html>

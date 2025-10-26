@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Property Offers & Negotiations - PropertyHub</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="header">
+    <nav class="nav">
+        <a href="/" class="logo">PropertyHub</a>
+        <ul class="nav-links">
+            <li><a href="/">Home</a></li>
+            <li><a href="/dashboard.html">Dashboard</a></li>
+            <li><a href="#" id="userInfo"></a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+    </nav>
+</header>
+
+<main class="container">
+    Featured Offers Banner Section
+    <section class="offers-banner">
+        <h1 style="color: white;"><i class="fas fa-bullseye"></i> Featured Property Offers</h1>
+        <p style="color: white;">Exclusive deals and negotiations on premium properties</p>
+        <div id="featuredOffers" class="featured-offers-grid"></div>
+    </section>
+
+    Offers Management Section
+    <section class="offers-management">
+        <div class="section-header">
+            <h2>Manage Offers & Negotiations</h2>
+            <div class="filter-controls">
+                <select id="offerStatusFilter" class="form-control" onchange="loadOffers()">
+                    <option value="">All Offers</option>
+                    <option value="PENDING">Pending</option>
+                    <option value="ACCEPTED">Accepted</option>
+                    <option value="REJECTED">Rejected</option>
+                    <option value="COUNTERED">Countered</option>
+                    <option value="EXPIRED">Expired</option>
+                </select>
+                <button class="btn btn-primary" onclick="expireOldOffersAction()"><i class="fas fa-clock"></i> Expire Old Offers</button>
+            </div>
+        </div>
+
+        <div id="offersLoading" class="loading hidden">Loading offers...</div>
+        <div id="offersError" class="error hidden"></div>
+        <div id="offersList" class="offers-grid"></div>
+    </section>
+
+    Negotiation History Modal
+    <div id="negotiationModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Negotiation History</h2>
+                <button class="close-btn" onclick="closeNegotiationModal()">×</button>
+            </div>
+            <div id="negotiationHistory" class="negotiation-timeline"></div>
+        </div>
+    </div>
+
+    Counter Offer Modal
+    <div id="counterOfferModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Submit Counter Offer</h2>
+                <button class="close-btn" onclick="closeCounterOfferModal()">×</button>
+            </div>
+            <form id="counterOfferForm">
+                <div class="form-group">
+                    <label for="counterPrice">Counter Offer Price</label>
+                    <input type="number" id="counterPrice" class="form-control" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="counterTerms">Counter Terms</label>
+                    <textarea id="counterTerms" class="form-control" rows="4" placeholder="Enter your counter terms..."></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Submit Counter Offer</button>
+                    <button type="button" class="btn btn-outline" onclick="closeCounterOfferModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+
+<script src="/js/script.js"></script>
+<script>
+    let currentUser = null;
+    let currentOfferId = null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        checkAuth();
+        loadFeaturedOffers();
+        loadOffers();
+
+        document.getElementById('counterOfferForm').addEventListener('submit', handleCounterOfferSubmit);
+    });
+
+    function checkAuth() {
+        const userStr = localStorage.getItem('currentUser');
+        if (!userStr) {
+            window.location.href = '/login.html';
+            return;
+        }
+
+        currentUser = JSON.parse(userStr);
+        document.getElementById('userInfo').textContent = `${currentUser.username} (${currentUser.role})`;
+    }
+
+    async function loadFeaturedOffers() {
+        try {
+            const pendingOffers = await fetchPendingOffers();
+            // Show top 3 pending offers as featured
+            const featured = pendingOffers.slice(0, 3);
+            displayFeaturedOffers(featured);
+        } catch (error) {
+            console.error('Failed to load featured offers:', error);
+        }
+    }
+
+    async function displayFeaturedOffers(offers) {
+        const container = document.getElementById('featuredOffers');
+
+        if (offers.length === 0) {
+            container.innerHTML = '<p class="text-center">No featured offers available at the moment.</p>';
+            return;
+        }
+
+        // Fetch property details for each offer
+        const offersWithPropertyDetails = await Promise.all(
+            offers.map(async (offer) => {
+                try {
+                    console.log('Fetching property for offer:', offer.id, 'propertyId:', offer.propertyId);
+                    const property = await fetchPropertyById(offer.propertyId);
+                    console.log('Property fetched:', property);
+                    return { ...offer, property };
+                } catch (error) {
+                    console.error('Failed to fetch property details for offer', offer.id, ':', error);
+                    return { ...offer, property: null };
+                }
+            })
+        );
+
+        container.innerHTML = offersWithPropertyDetails.map(offer => {
+            console.log('Displaying offer:', offer.id, 'property data:', offer.property);
+            console.log('Property price:', offer.property?.price, 'rentAmount:', offer.property?.rentAmount);
+            return `
+                <div class="featured-offer-card">
+                    <div class="offer-badge"><i class="fas fa-fire"></i> HOT OFFER</div>
+                    <h3>${offer.propertyTitle || 'Property'}</h3>
+                    <p class="offer-location"><i class="fas fa-map-marker-alt"></i> ${offer.property?.location || 'Location not available'}</p>
+                    <div class="offer-price-comparison">
+                        <div class="original-price">
+                            <span class="label">Listed Price:</span>
+                            <span class="value">Rs ${(offer.property?.price || offer.property?.rentAmount)?.toLocaleString() || 'N/A'}</span>
+                        </div>
+                        <div class="offer-price">
+                            <span class="label">Offer Price:</span>
+                            <span class="value highlight">Rs ${offer.price?.toLocaleString() || 'N/A'}</span>
+                        </div>
+                    </div>
+                    <p class="offer-terms">${offer.terms || 'Standard terms apply'}</p>
+                    <a href="/property.html?id=${offer.propertyId}" class="btn btn-primary">View Property</a>
+                </div>
+            `;
+        }).join('');
+    }
+
+    async function loadOffers() {
+        const loadingEl = document.getElementById('offersLoading');
+        const errorEl = document.getElementById('offersError');
+        const container = document.getElementById('offersList');
+
+        try {
+            loadingEl.classList.remove('hidden');
+            errorEl.classList.add('hidden');
+
+            const filter = document.getElementById('offerStatusFilter').value;
+            let offers = [];
+
+            if (currentUser.role === 'ADMIN') {
+                offers = filter ? await fetchOffersByStatus(filter) : await fetchAllOffers();
+            } else if (currentUser.role === 'SELLER' || currentUser.role === 'AGENT') {
+                const properties = await fetchPropertiesBySeller(currentUser.id);
+                const allOffers = await Promise.all(
+                    properties.map(property => fetchOffersByProperty(property.id))
+                );
+                offers = allOffers.flat();
+                if (filter) {
+                    offers = offers.filter(offer => offer.status === filter);
+                }
+            } else {
+                offers = await fetchOffersByBuyer(currentUser.id);
+                if (filter) {
+                    offers = offers.filter(offer => offer.status === filter);
+                }
+            }
+
+            displayOffers(offers);
+            loadingEl.classList.add('hidden');
+        } catch (error) {
+            console.error('Failed to load offers:', error);
+            loadingEl.classList.add('hidden');
+            errorEl.textContent = 'Failed to load offers: ' + error.message;
+            errorEl.classList.remove('hidden');
+        }
+    }
+
+    function displayOffers(offers) {
+        const container = document.getElementById('offersList');
+
+        if (offers.length === 0) {
+            container.innerHTML = '<p class="text-center">No offers found.</p>';
+            return;
+        }
+
+        const isSellerView = currentUser.role === 'SELLER' || currentUser.role === 'AGENT' || currentUser.role === 'ADMIN';
+
+        container.innerHTML = offers.map(offer => `
+                <div class="offer-card">
+                    <div class="offer-header">
+                        <h3>Offer #${offer.id}</h3>
+                        <span class="status-badge ${getOfferStatusClass(offer.status)}">${formatOfferStatus(offer.status)}</span>
+                    </div>
+                    <div class="offer-details">
+                        <p><strong>Property:</strong> ${offer.propertyTitle || 'N/A'}</p>
+                        <p><strong>Buyer:</strong> ${offer.buyerUsername || 'N/A'}</p>
+                        <p><strong>Offer Price:</strong> Rs ${offer.price?.toLocaleString()}</p>
+                        <p><strong>Terms:</strong> ${offer.terms || 'No specific terms'}</p>
+                        <p><strong>Date:</strong> ${new Date(offer.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    <div class="offer-actions">
+                        ${isSellerView && offer.status === 'PENDING' ? `
+                            <button class="btn btn-success" onclick="acceptOfferAction(${offer.id})"><i class="fas fa-check"></i> Accept</button>
+                            <button class="btn btn-warning" onclick="openCounterOfferModal(${offer.id})"><i class="fas fa-exchange-alt"></i> Counter</button>
+                            <button class="btn btn-danger" onclick="rejectOfferAction(${offer.id})"><i class="fas fa-times"></i> Reject</button>
+                        ` : ''}
+                        ${!isSellerView && offer.status === 'COUNTERED' ? `
+                            <button class="btn btn-success" onclick="acceptCounterOffer(${offer.id})">Accept Counter</button>
+                            <button class="btn btn-warning" onclick="openCounterOfferModal(${offer.id})">Counter Again</button>
+                        ` : ''}
+                        ${currentUser.role === 'ADMIN' ? `
+                            <button class="btn btn-secondary" onclick="editOffer(${offer.id})"><i class="fas fa-edit"></i> Edit</button>
+                        ` : ''}
+                        <button class="btn btn-outline" onclick="viewNegotiationHistory(${offer.id})"><i class="fas fa-history"></i> History</button>
+                    </div>
+                </div>
+            `).join('');
+    }
+
+    async function acceptOfferAction(offerId) {
+        if (confirm('Are you sure you want to accept this offer? This will mark the property as SOLD and reject all other offers.')) {
+            try {
+                await acceptOffer(offerId);
+                alert('Offer accepted successfully! Property marked as SOLD.');
+                loadOffers();
+                loadFeaturedOffers();
+            } catch (error) {
+                alert('Failed to accept offer: ' + error.message);
+            }
+        }
+    }
+
+    async function rejectOfferAction(offerId) {
+        if (confirm('Are you sure you want to reject this offer?')) {
+            try {
+                await updateOfferStatus(offerId, 'REJECTED');
+                alert('Offer rejected.');
+                loadOffers();
+            } catch (error) {
+                alert('Failed to reject offer: ' + error.message);
+            }
+        }
+    }
+
+    function openCounterOfferModal(offerId) {
+        currentOfferId = offerId;
+        document.getElementById('counterOfferModal').classList.remove('hidden');
+    }
+
+    function closeCounterOfferModal() {
+        currentOfferId = null;
+        document.getElementById('counterOfferModal').classList.add('hidden');
+        document.getElementById('counterOfferForm').reset();
+    }
+
+    async function handleCounterOfferSubmit(e) {
+        e.preventDefault();
+
+        try {
+            const counterData = {
+                price: parseFloat(document.getElementById('counterPrice').value),
+                terms: document.getElementById('counterTerms').value
+            };
+
+            await counterOffer(currentOfferId, counterData);
+            alert('Counter offer submitted successfully!');
+            closeCounterOfferModal();
+            loadOffers();
+            loadFeaturedOffers();
+        } catch (error) {
+            alert('Failed to submit counter offer: ' + error.message);
+        }
+    }
+
+    async function acceptCounterOffer(offerId) {
+        if (confirm('Accept this counter offer?')) {
+            try {
+                await acceptOffer(offerId);
+                alert('Counter offer accepted!');
+                loadOffers();
+            } catch (error) {
+                alert('Failed to accept counter offer: ' + error.message);
+            }
+        }
+    }
+
+    async function viewNegotiationHistory(offerId) {
+        // Placeholder for negotiation history
+        document.getElementById('negotiationHistory').innerHTML = `
+                <div class="timeline-item">
+                    <div class="timeline-marker">1</div>
+                    <div class="timeline-content">
+                        <h4>Initial Offer</h4>
+                        <p>Offer #${offerId} was created</p>
+                        <span class="timeline-date">${new Date().toLocaleDateString()}</span>
+                    </div>
+                </div>
+            `;
+        document.getElementById('negotiationModal').classList.remove('hidden');
+    }
+
+    function closeNegotiationModal() {
+        document.getElementById('negotiationModal').classList.add('hidden');
+    }
+
+    async function expireOldOffersAction() {
+        if (confirm('This will expire all old pending offers. Continue?')) {
+            try {
+                await expireOldOffers();
+                alert('Old offers expired successfully!');
+                loadOffers();
+                loadFeaturedOffers();
+            } catch (error) {
+                alert('Failed to expire old offers: ' + error.message);
+            }
+        }
+    }
+
+    let currentOffer = null;
+
+    async function editOffer(offerId) {
+        try {
+            // Fetch offer details
+            currentOffer = await apiCall(`/offers/${offerId}`);
+            
+            // Create edit modal
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>Edit Offer</h2>
+                        <span class="close" onclick="closeModal(this)">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <form id="editOfferForm">
+                            <div class="form-group">
+                                <label for="editOfferPrice">Price (Rs):</label>
+                                <input type="number" id="editOfferPrice" value="${currentOffer.price}" step="0.01" min="0" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="editOfferTerms">Terms:</label>
+                                <textarea id="editOfferTerms" rows="4" required>${currentOffer.terms || ''}</textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="editOfferStatus">Status:</label>
+                                <select id="editOfferStatus" required>
+                                    <option value="PENDING" ${currentOffer.status === 'PENDING' ? 'selected' : ''}>Pending</option>
+                                    <option value="ACCEPTED" ${currentOffer.status === 'ACCEPTED' ? 'selected' : ''}>Accepted</option>
+                                    <option value="REJECTED" ${currentOffer.status === 'REJECTED' ? 'selected' : ''}>Rejected</option>
+                                    <option value="EXPIRED" ${currentOffer.status === 'EXPIRED' ? 'selected' : ''}>Expired</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal(this)">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="saveOfferEdit(${offerId})">Save Changes</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            modal.style.display = 'block';
+            
+        } catch (error) {
+            alert('Failed to load offer details: ' + error.message);
+        }
+    }
+
+    async function saveOfferEdit(offerId) {
+        try {
+            const price = parseFloat(document.getElementById('editOfferPrice').value);
+            const terms = document.getElementById('editOfferTerms').value;
+            const status = document.getElementById('editOfferStatus').value;
+            
+            // Update offer details
+            await apiCall(`/offers/${offerId}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    propertyId: currentOffer.propertyId,
+                    buyerId: currentOffer.buyerId,
+                    price: price,
+                    terms: terms
+                })
+            });
+            
+            // Update status if changed
+            if (status !== currentOffer.status) {
+                await apiCall(`/offers/${offerId}/status`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ status: status })
+                });
+            }
+            
+            alert('Offer updated successfully!');
+            closeModal(document.querySelector('.modal'));
+            loadOffers();
+            
+        } catch (error) {
+            alert('Failed to update offer: ' + error.message);
+        }
+    }
+
+    function closeModal(element) {
+        const modal = element.closest('.modal');
+        if (modal) {
+            modal.remove();
+        }
+    }
+
+    function logout() {
+        localStorage.removeItem('currentUser');
+        window.location.href = '/login.html';
+    }
+</script>
+
+<footer class="footer">
+    <div class="container">
+        <p>Copyright 2025 - Project Group 2025-Y2-S1-MLB-B7G2-01</p>
+    </div>
+</footer>
+</body>
+</html>

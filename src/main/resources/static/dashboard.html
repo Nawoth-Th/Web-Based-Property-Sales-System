@@ -1,0 +1,2189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - PropertyHub</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="header">
+    <nav class="nav">
+        <a href="/" class="logo">PropertyHub</a>
+        <ul class="nav-links">
+            <li><a href="/">Home</a></li>
+            <li><a href="/offers.html" id="offersLink">Offers</a></li>
+            <li><a href="/agreements.html" id="agreementsLink" class="hidden">Agreements</a></li>
+            <li><a href="/profile.html">Profile</a></li>
+            <li><a href="#" id="userInfo" style="color: #4CAF50; font-weight: 600;"></a></li>
+            <li><a href="#" onclick="logout(); return false;">Logout</a></li>
+        </ul>
+    </nav>
+</header>
+
+<main class="container">
+    <div id="loginRequired" class="text-center hidden">
+        <h2>Please Login</h2>
+        <p>You need to be logged in to access the dashboard.</p>
+        <a href="/login.html" class="btn btn-primary">Go to Login</a>
+    </div>
+
+    <div id="dashboardContent" class="hidden">
+        <h1>Dashboard</h1>
+
+        <div class="dashboard-tabs">
+            <button class="btn btn-primary" onclick="showTab('properties')" id="propertiesTabBtn">My Properties</button>
+            <button class="btn btn-outline" onclick="showTab('bookings')" id="bookingsTabBtn">My Bookings</button>
+            <button class="btn btn-outline" onclick="showTab('inquiries')" id="inquiriesTabBtn">My Inquiries</button>
+            <button class="btn btn-outline" onclick="showTab('offers')" id="offersTabBtn">My Offers</button>
+            <button class="btn btn-outline" onclick="showTab('rentals')" id="rentalsTabBtn">Rental Agreements</button>
+            <button class="btn btn-outline" onclick="showTab('addProperty')" id="addPropertyBtn">Add Property</button>
+            <button class="btn btn-outline hidden" onclick="showTab('userManagement')" id="userManagementBtn">User Management</button>
+        </div>
+
+        <div id="propertiesTab" class="tab-content">
+            <h2>My Properties</h2>
+            <!-- Added loading and error states -->
+            <div id="propertiesLoading" class="loading hidden">Loading properties...</div>
+            <div id="propertiesError" class="error hidden"></div>
+            <div id="myProperties" class="properties-grid"></div>
+        </div>
+
+        <div id="bookingsTab" class="tab-content hidden">
+            <h2>My Bookings</h2>
+            <div id="myBookings"></div>
+        </div>
+
+        <div id="inquiriesTab" class="tab-content hidden">
+            <h2>My Inquiries</h2>
+            <div class="form-group">
+                <label for="inquiryFilter">Filter by Status:</label>
+                <select id="inquiryFilter" class="form-control" onchange="loadMyInquiries()">
+                    <option value="">All Inquiries</option>
+                    <option value="OPEN">Open</option>
+                    <option value="RESOLVED">Resolved</option>
+                    <option value="ARCHIVED">Archived</option>
+                </select>
+            </div>
+            <div id="myInquiries"></div>
+        </div>
+
+        <div id="offersTab" class="tab-content hidden">
+            <h2>My Offers</h2>
+            <div class="form-group">
+                <label for="offerFilter">Filter by Status:</label>
+                <select id="offerFilter" class="form-control" onchange="loadMyOffers()">
+                    <option value="">All Offers</option>
+                    <option value="PENDING">Pending</option>
+                    <option value="ACCEPTED">Accepted</option>
+                    <option value="REJECTED">Rejected</option>
+                    <option value="COUNTERED">Countered</option>
+                    <option value="EXPIRED">Expired</option>
+                </select>
+            </div>
+            <div id="myOffers"></div>
+        </div>
+
+        <div id="rentalsTab" class="tab-content hidden">
+            <h2 id="rentalsHeading">My Rental Agreements</h2>
+            <div id="myRentals"></div>
+        </div>
+
+        <div id="userManagementTab" class="tab-content hidden">
+            <h2>User Management</h2>
+            <div class="form-group">
+                <label for="userRoleFilter">Filter by Role:</label>
+                <select id="userRoleFilter" class="form-control" onchange="loadAllUsers()">
+                    <option value="">All Users</option>
+                    <option value="ADMIN">Admin</option>
+                    <option value="SELLER">Seller</option>
+                    <option value="BUYER">Buyer</option>
+                    <option value="RENTER">Renter</option>
+                    <option value="AGENT">Agent</option>
+                </select>
+                <button class="btn btn-primary" onclick="showAddUserForm()">Add New User</button>
+            </div>
+            <div id="userManagementLoading" class="loading hidden">Loading users...</div>
+            <div id="userManagementError" class="error hidden"></div>
+            <div id="allUsers" class="properties-grid"></div>
+        </div>
+
+        <div id="addPropertyTab" class="tab-content hidden">
+            <div class="form-container">
+                <h2 class="form-title">Add New Property</h2>
+
+                <div id="propertyError" class="error hidden"></div>
+                <div id="propertySuccess" class="success hidden"></div>
+
+                <form id="addPropertyForm">
+                    <div class="form-group">
+                        <label for="propertyTitle">Title</label>
+                        <input type="text" id="propertyTitle" class="form-control" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="propertyType">Type</label>
+                        <select id="propertyType" class="form-control" required>
+                            <option value="">Select Type</option>
+                            <option value="SALE">For Sale</option>
+                            <option value="RENT">For Rent</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="propertyLocation">Location</label>
+                        <input type="text" id="propertyLocation" class="form-control" required>
+                    </div>
+
+                    <div class="form-group" id="priceGroup">
+                        <label for="propertyPrice">Sale Price</label>
+                        <input type="number" id="propertyPrice" class="form-control" step="0.01">
+                    </div>
+
+                    <div class="form-group hidden" id="rentGroup">
+                        <label for="propertyRent">Rent Amount (per month)</label>
+                        <input type="number" id="propertyRent" class="form-control" step="0.01">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="propertyDescription">Description</label>
+                        <textarea id="propertyDescription" class="form-control" rows="4"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="propertyImages">Property Images</label>
+                        <input type="file" id="propertyImages" class="form-control" multiple accept="image/*">
+                        <small class="form-text">Select multiple images for your property (JPG, PNG, GIF)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <div id="imagePreview" class="image-preview-container"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary">Add Property</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Edit Property Form Modal -->
+        <div id="editPropertyModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Edit Property</h3>
+                    <button class="modal-close" onclick="closeEditPropertyForm()">&times;</button>
+                </div>
+                <form id="editPropertyForm">
+                    <input type="hidden" id="editPropertyId">
+                    
+                    <div class="form-group">
+                        <label for="editPropertyTitle">Title</label>
+                        <input type="text" id="editPropertyTitle" class="form-control" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editPropertyType">Type</label>
+                        <select id="editPropertyType" class="form-control" required>
+                            <option value="">Select Type</option>
+                            <option value="SALE">For Sale</option>
+                            <option value="RENT">For Rent</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editPropertyLocation">Location</label>
+                        <input type="text" id="editPropertyLocation" class="form-control" required>
+                    </div>
+
+                    <div class="form-group" id="editPriceGroup">
+                        <label for="editPropertyPrice">Sale Price</label>
+                        <input type="number" id="editPropertyPrice" class="form-control" step="0.01">
+                    </div>
+
+                    <div class="form-group hidden" id="editRentGroup">
+                        <label for="editPropertyRent">Rent Amount (per month)</label>
+                        <input type="number" id="editPropertyRent" class="form-control" step="0.01">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editPropertyDescription">Description</label>
+                        <textarea id="editPropertyDescription" class="form-control" rows="4"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editPropertyImages">Update Images (Optional)</label>
+                        <input type="file" id="editPropertyImages" class="form-control" multiple accept="image/*">
+                        <small class="form-text">Select new images to replace existing ones</small>
+                    </div>
+
+                    <div class="form-group">
+                        <div id="editImagePreview" class="image-preview-container"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary">Update Property</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeEditPropertyForm()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Add User Form Modal -->
+        <div id="addUserModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Add New User</h3>
+                    <button class="modal-close" onclick="closeAddUserForm()">&times;</button>
+                </div>
+                <form id="addUserForm">
+                    <div class="form-group">
+                        <label for="newUsername">Username</label>
+                        <input type="text" id="newUsername" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newEmail">Email</label>
+                        <input type="email" id="newEmail" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newPassword">Password</label>
+                        <input type="password" id="newPassword" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newRole">Role</label>
+                        <select id="newRole" class="form-control" required>
+                            <option value="">Select Role</option>
+                            <option value="ADMIN">Admin</option>
+                            <option value="SELLER">Seller</option>
+                            <option value="BUYER">Buyer</option>
+                            <option value="RENTER">Renter</option>
+                            <option value="AGENT">Agent</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary">Create User</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeAddUserForm()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="/js/script.js"></script>
+<script>
+    let currentUser = null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('[v0] Dashboard page loaded');
+        checkAuth();
+        
+        // Ensure User Management button visibility is properly set
+        setTimeout(() => {
+            ensureUserManagementVisibility();
+            ensureBuyerTabVisibility();
+        }, 100);
+
+        // Handle property type change
+        document.getElementById('propertyType').addEventListener('change', function() {
+            const type = this.value;
+            const priceGroup = document.getElementById('priceGroup');
+            const rentGroup = document.getElementById('rentGroup');
+
+            if (type === 'SALE') {
+                priceGroup.classList.remove('hidden');
+                rentGroup.classList.add('hidden');
+                document.getElementById('propertyPrice').required = true;
+                document.getElementById('propertyRent').required = false;
+            } else if (type === 'RENT') {
+                priceGroup.classList.add('hidden');
+                rentGroup.classList.remove('hidden');
+                document.getElementById('propertyPrice').required = false;
+                document.getElementById('propertyRent').required = true;
+            }
+        });
+
+        // Handle add property form
+        document.getElementById('addPropertyForm').addEventListener('submit', handleAddProperty);
+
+        // Handle add user form
+        document.getElementById('addUserForm').addEventListener('submit', handleAddUser);
+
+        // Handle image preview
+        document.getElementById('propertyImages').addEventListener('change', handleImagePreview);
+
+        // Handle edit property form
+        document.getElementById('editPropertyForm').addEventListener('submit', handleEditProperty);
+        
+        // Handle edit property type change
+        document.getElementById('editPropertyType').addEventListener('change', function() {
+            const editPriceGroup = document.getElementById('editPriceGroup');
+            const editRentGroup = document.getElementById('editRentGroup');
+            const editPropertyPrice = document.getElementById('editPropertyPrice');
+            const editPropertyRent = document.getElementById('editPropertyRent');
+
+            if (this.value === 'SALE') {
+                editPriceGroup.classList.remove('hidden');
+                editRentGroup.classList.add('hidden');
+                editPropertyPrice.required = true;
+                editPropertyRent.required = false;
+            } else if (this.value === 'RENT') {
+                editPriceGroup.classList.add('hidden');
+                editRentGroup.classList.remove('hidden');
+                editPropertyPrice.required = false;
+                editPropertyRent.required = true;
+            }
+        });
+
+        // Handle edit image preview
+        document.getElementById('editPropertyImages').addEventListener('change', handleEditImagePreview);
+
+        // Ensure User Management button visibility on window events
+        window.addEventListener('resize', function() {
+            if (currentUser && currentUser.role !== 'ADMIN') {
+                ensureUserManagementVisibility();
+            }
+            ensureBuyerTabVisibility();
+        });
+    });
+
+    function checkAuth() {
+        console.log('[v0] Checking authentication...');
+        const userStr = localStorage.getItem('currentUser');
+        console.log('[v0] User data from localStorage:', userStr);
+
+        if (!userStr) {
+            console.log('[v0] No user data found, showing login required message');
+            document.getElementById('loginRequired').classList.remove('hidden');
+            document.getElementById('dashboardContent').classList.add('hidden');
+            setTimeout(() => {
+                window.location.href = '/login.html';
+            }, 2000);
+            return;
+        }
+
+        try {
+            currentUser = JSON.parse(userStr);
+            console.log('[v0] Current user:', currentUser);
+
+            if (!currentUser.id || !currentUser.username || !currentUser.role) {
+                console.error('[v0] Invalid user data structure');
+                localStorage.removeItem('currentUser');
+                document.getElementById('loginRequired').classList.remove('hidden');
+                document.getElementById('dashboardContent').classList.add('hidden');
+                setTimeout(() => {
+                    window.location.href = '/login.html';
+                }, 2000);
+                return;
+            }
+
+            document.getElementById('userInfo').textContent = `${currentUser.username} (${currentUser.role})`;
+            document.getElementById('dashboardContent').classList.remove('hidden');
+            document.getElementById('loginRequired').classList.add('hidden');
+
+            const agreementsLink = document.getElementById('agreementsLink');
+            const allowedRoles = ['SELLER', 'AGENT', 'ADMIN', 'RENTER'];
+            if (agreementsLink && allowedRoles.includes(currentUser.role)) {
+                agreementsLink.classList.remove('hidden');
+            }
+
+            const addPropertyTabBtn = document.getElementById('addPropertyBtn');
+            const propertiesTabBtn = document.getElementById('propertiesTabBtn');
+            
+            // Hide "My Properties" and "Add Property" tabs for BUYER role
+            console.log('[v0] Setting up property tabs for role:', currentUser.role);
+            if (currentUser.role === 'BUYER') {
+                console.log('[v0] Hiding property tabs for buyer');
+                if (propertiesTabBtn) {
+                    propertiesTabBtn.classList.add('hidden');
+                    propertiesTabBtn.style.display = 'none';
+                    propertiesTabBtn.style.visibility = 'hidden';
+                    propertiesTabBtn.style.opacity = '0';
+                    console.log('[v0] Properties tab hidden for buyer');
+                }
+                if (addPropertyTabBtn) {
+                    addPropertyTabBtn.classList.add('hidden');
+                    addPropertyTabBtn.style.display = 'none';
+                    addPropertyTabBtn.style.visibility = 'hidden';
+                    addPropertyTabBtn.style.opacity = '0';
+                    console.log('[v0] Add Property tab hidden for buyer');
+                }
+            } else if (currentUser.role === 'SELLER' || currentUser.role === 'AGENT' || currentUser.role === 'ADMIN') {
+                console.log('[v0] Showing property tabs for seller/agent/admin');
+                if (addPropertyTabBtn) {
+                    addPropertyTabBtn.classList.remove('hidden');
+                    addPropertyTabBtn.style.display = 'inline-block';
+                    addPropertyTabBtn.style.visibility = 'visible';
+                    addPropertyTabBtn.style.opacity = '1';
+                }
+                if (propertiesTabBtn) {
+                    propertiesTabBtn.classList.remove('hidden');
+                    propertiesTabBtn.style.display = 'inline-block';
+                    propertiesTabBtn.style.visibility = 'visible';
+                    propertiesTabBtn.style.opacity = '1';
+                }
+            } else {
+                console.log('[v0] Hiding property tabs for unknown role:', currentUser.role);
+                if (addPropertyTabBtn) {
+                    addPropertyTabBtn.classList.add('hidden');
+                    addPropertyTabBtn.style.display = 'none';
+                    addPropertyTabBtn.style.visibility = 'hidden';
+                    addPropertyTabBtn.style.opacity = '0';
+                }
+                if (propertiesTabBtn) {
+                    propertiesTabBtn.classList.add('hidden');
+                    propertiesTabBtn.style.display = 'none';
+                    propertiesTabBtn.style.visibility = 'hidden';
+                    propertiesTabBtn.style.opacity = '0';
+                }
+            }
+
+            // Show User Management tab for admins ONLY
+            const userManagementBtn = document.getElementById('userManagementBtn');
+            console.log('[v0] Current user role:', currentUser.role);
+            console.log('[v0] User management button found:', userManagementBtn);
+            console.log('[v0] Is admin?', currentUser.role === 'ADMIN');
+            
+            if (currentUser.role === 'ADMIN') {
+                console.log('[v0] User is admin - showing User Management tab');
+                if (userManagementBtn) {
+                    userManagementBtn.classList.remove('hidden');
+                    userManagementBtn.classList.add('show');
+                    userManagementBtn.style.display = 'inline-block';
+                    userManagementBtn.style.visibility = 'visible';
+                    userManagementBtn.style.opacity = '1';
+                    console.log('[v0] User Management button shown, classes:', userManagementBtn.className);
+                    console.log('[v0] User Management button style display:', userManagementBtn.style.display);
+                } else {
+                    console.error('[v0] User Management button not found!');
+                }
+                // Update tab labels for admin
+                updateAdminTabLabels();
+            } else {
+                console.log('[v0] User is not admin - hiding User Management tab');
+                if (userManagementBtn) {
+                    userManagementBtn.classList.remove('show');
+                    userManagementBtn.classList.add('hidden');
+                    userManagementBtn.style.display = 'none';
+                    userManagementBtn.style.visibility = 'hidden';
+                    userManagementBtn.style.opacity = '0';
+                    console.log('[v0] User Management button hidden, classes:', userManagementBtn.className);
+                    
+                    // Also hide the tab content if it's currently active
+                    const userManagementTab = document.getElementById('userManagementTab');
+                    if (userManagementTab && !userManagementTab.classList.contains('hidden')) {
+                        userManagementTab.classList.add('hidden');
+                        // Switch to properties tab if user management was active
+                        showTab('properties');
+                    }
+                } else {
+                    console.error('[v0] User Management button not found!');
+                }
+            }
+
+            // Update rental agreements heading for buyers
+            const rentalsHeading = document.getElementById('rentalsHeading');
+            if (currentUser.role === 'BUYER' && rentalsHeading) {
+                rentalsHeading.textContent = 'My Rental Agreements (Incoming)';
+            }
+
+            // Ensure User Management button is properly hidden for non-admin users
+            ensureUserManagementVisibility();
+            
+            // Load initial data based on user role
+            if (currentUser.role === 'BUYER') {
+                console.log('[v0] Loading initial bookings for buyer...');
+                showTab('bookings');
+            } else {
+                console.log('[v0] Loading initial properties...');
+                loadMyProperties();
+            }
+        } catch (error) {
+            console.error('[v0] Error parsing user data:', error);
+            localStorage.removeItem('currentUser');
+            document.getElementById('loginRequired').classList.remove('hidden');
+            document.getElementById('dashboardContent').classList.add('hidden');
+            setTimeout(() => {
+                window.location.href = '/login.html';
+            }, 2000);
+        }
+    }
+
+    function showTab(tabName) {
+        console.log('[v0] Switching to tab:', tabName);
+        
+        // Prevent non-admin users from accessing userManagement tab
+        if (tabName === 'userManagement' && currentUser.role !== 'ADMIN') {
+            console.log('[v0] Access denied to userManagement tab for non-admin user');
+            alert('Access denied. User Management is only available for administrators.');
+            return;
+        }
+        
+        // Prevent buyers from accessing property-related tabs
+        if ((tabName === 'properties' || tabName === 'addProperty') && currentUser.role === 'BUYER') {
+            console.log('[v0] Access denied to property tabs for buyer user');
+            alert('Access denied. Property management is not available for buyers.');
+            return;
+        }
+        
+        // Hide all tabs
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.classList.add('hidden');
+        });
+
+        // Reset button styles
+        document.querySelectorAll('.dashboard-tabs .btn').forEach(btn => {
+            btn.className = 'btn btn-outline';
+        });
+        
+        // Preserve User Management button visibility for non-admin users
+        if (currentUser && currentUser.role !== 'ADMIN') {
+            const userManagementBtn = document.getElementById('userManagementBtn');
+            if (userManagementBtn) {
+                userManagementBtn.classList.add('hidden');
+                userManagementBtn.style.display = 'none';
+                userManagementBtn.style.visibility = 'hidden';
+                userManagementBtn.style.opacity = '0';
+            }
+        }
+
+        // Show selected tab
+        const selectedTab = document.getElementById(tabName + 'Tab');
+        if (selectedTab) {
+            selectedTab.classList.remove('hidden');
+            const buttons = document.querySelectorAll('.dashboard-tabs .btn');
+            buttons.forEach(btn => {
+                if (btn.onclick && btn.onclick.toString().includes(`'${tabName}'`)) {
+                    btn.className = 'btn btn-primary';
+                }
+            });
+        } else {
+            console.error('[v0] Tab not found:', tabName + 'Tab');
+        }
+
+        // Ensure User Management button visibility is maintained after tab switch
+        ensureUserManagementVisibility();
+        
+        // Ensure property tabs are hidden for buyers after tab switch
+        ensureBuyerTabVisibility();
+        
+        // Load data based on tab
+        switch(tabName) {
+            case 'properties':
+                loadMyProperties();
+                break;
+            case 'bookings':
+                loadMyBookings();
+                break;
+            case 'inquiries':
+                loadMyInquiries();
+                break;
+            case 'offers':
+                loadMyOffers();
+                break;
+            case 'rentals':
+                loadMyRentals();
+                break;
+            case 'userManagement':
+                loadAllUsers();
+                break;
+        }
+    }
+
+    function updateAdminTabLabels() {
+        // Update tab labels for admin users
+        const propertiesBtn = document.getElementById('propertiesTabBtn');
+        const bookingsBtn = document.getElementById('bookingsTabBtn');
+        const inquiriesBtn = document.getElementById('inquiriesTabBtn');
+        const offersBtn = document.getElementById('offersTabBtn');
+        const rentalsBtn = document.getElementById('rentalsTabBtn');
+
+        if (propertiesBtn) propertiesBtn.textContent = 'All Properties';
+        if (bookingsBtn) bookingsBtn.textContent = 'All Bookings';
+        if (inquiriesBtn) inquiriesBtn.textContent = 'All Inquiries';
+        if (offersBtn) offersBtn.textContent = 'All Offers';
+        if (rentalsBtn) rentalsBtn.textContent = 'All Rental Agreements';
+    }
+
+    function ensureUserManagementVisibility() {
+        const userManagementBtn = document.getElementById('userManagementBtn');
+        if (!userManagementBtn) return;
+        
+        console.log('[v0] Ensuring User Management button visibility for role:', currentUser.role);
+        
+        if (currentUser.role === 'ADMIN') {
+            // Show for admin
+            userManagementBtn.classList.remove('hidden');
+            userManagementBtn.classList.add('show');
+            userManagementBtn.style.display = 'inline-block';
+            userManagementBtn.style.visibility = 'visible';
+            userManagementBtn.style.opacity = '1';
+            console.log('[v0] User Management button shown for admin');
+        } else {
+            // Hide for all other roles
+            userManagementBtn.classList.remove('show');
+            userManagementBtn.classList.add('hidden');
+            userManagementBtn.style.display = 'none';
+            userManagementBtn.style.visibility = 'hidden';
+            userManagementBtn.style.opacity = '0';
+            console.log('[v0] User Management button hidden for non-admin');
+        }
+    }
+
+    function ensureBuyerTabVisibility() {
+        console.log('[v0] Ensuring buyer tab visibility...');
+        const propertiesTabBtn = document.getElementById('propertiesTabBtn');
+        const addPropertyTabBtn = document.getElementById('addPropertyBtn');
+        
+        if (!currentUser) {
+            console.warn('[v0] No current user found');
+            return;
+        }
+        
+        if (currentUser.role === 'BUYER') {
+            console.log('[v0] User is buyer - ensuring property tabs are hidden');
+            if (propertiesTabBtn) {
+                propertiesTabBtn.classList.add('hidden');
+                propertiesTabBtn.style.display = 'none';
+                propertiesTabBtn.style.visibility = 'hidden';
+                propertiesTabBtn.style.opacity = '0';
+                console.log('[v0] Properties tab hidden for buyer in ensureBuyerTabVisibility');
+            }
+            if (addPropertyTabBtn) {
+                addPropertyTabBtn.classList.add('hidden');
+                addPropertyTabBtn.style.display = 'none';
+                addPropertyTabBtn.style.visibility = 'hidden';
+                addPropertyTabBtn.style.opacity = '0';
+                console.log('[v0] Add Property tab hidden for buyer in ensureBuyerTabVisibility');
+            }
+        } else if (currentUser.role === 'SELLER' || currentUser.role === 'AGENT' || currentUser.role === 'ADMIN') {
+            console.log('[v0] User is seller/agent/admin - ensuring property tabs are visible');
+            if (propertiesTabBtn) {
+                propertiesTabBtn.classList.remove('hidden');
+                propertiesTabBtn.style.display = 'inline-block';
+                propertiesTabBtn.style.visibility = 'visible';
+                propertiesTabBtn.style.opacity = '1';
+                console.log('[v0] Properties tab shown for seller/agent/admin in ensureBuyerTabVisibility');
+            }
+            if (addPropertyTabBtn) {
+                addPropertyTabBtn.classList.remove('hidden');
+                addPropertyTabBtn.style.display = 'inline-block';
+                addPropertyTabBtn.style.visibility = 'visible';
+                addPropertyTabBtn.style.opacity = '1';
+                console.log('[v0] Add Property tab shown for seller/agent/admin in ensureBuyerTabVisibility');
+            }
+        }
+    }
+
+    async function loadMyProperties() {
+        console.log('[v0] Loading properties for user:', currentUser.id);
+        const loadingEl = document.getElementById('propertiesLoading');
+        const errorEl = document.getElementById('propertiesError');
+        const container = document.getElementById('myProperties');
+
+        try {
+            if (loadingEl) loadingEl.classList.remove('hidden');
+            if (errorEl) errorEl.classList.add('hidden');
+
+            let properties = [];
+            // For admin users, load all properties; for others, load their own properties
+            if (currentUser.role === 'ADMIN') {
+                properties = await fetchAllProperties();
+                console.log('[v0] All properties loaded for admin:', properties);
+            } else {
+                properties = await fetchPropertiesBySeller(currentUser.id);
+                console.log('[v0] User properties loaded:', properties);
+            }
+            
+            displayMyProperties(properties);
+
+            if (loadingEl) loadingEl.classList.add('hidden');
+        } catch (error) {
+            console.error('[v0] Failed to load properties:', error);
+            if (loadingEl) loadingEl.classList.add('hidden');
+            if (errorEl) {
+                errorEl.textContent = 'Failed to load properties: ' + error.message;
+                errorEl.classList.remove('hidden');
+            }
+            if (container) {
+                container.innerHTML = '<p class="error">Failed to load properties. Please try again.</p>';
+            }
+        }
+    }
+
+    function displayMyProperties(properties) {
+        const container = document.getElementById('myProperties');
+
+        if (!container) {
+            console.error('[v0] Properties container not found');
+            return;
+        }
+
+        if (properties.length === 0) {
+            container.innerHTML = '<p class="text-center">No properties found. Click "Add Property" to create your first listing.</p>';
+            return;
+        }
+
+        container.innerHTML = properties.map(property => `
+                <div class="property-card">
+                    ${property.mainImage ? 
+                        `<img src="${property.mainImage}" alt="${property.title}" class="property-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                         <div class="property-image-placeholder" style="display:none;"><i class="fas fa-home"></i></div>` :
+                        `<div class="property-image-placeholder"><i class="fas fa-home"></i></div>`
+                    }
+                    <div class="property-content">
+                        <h3 class="property-title">${property.title || 'Untitled'}</h3>
+                        <p class="property-location"><i class="fas fa-map-marker-alt"></i> ${property.location || 'N/A'}</p>
+                        <div class="property-price">
+                            ${property.type === 'SALE' ?
+            `Rs ${property.price?.toLocaleString() || 'N/A'}` :
+            `Rs ${property.rentAmount?.toLocaleString() || 'N/A'}/month`}
+                        </div>
+                        <span class="property-type">${property.type || 'N/A'}</span>
+                        <span class="status-badge status-${(property.status || 'unknown').toLowerCase()}">${property.status || 'UNKNOWN'}</span>
+                        <div class="property-actions">
+                            <a href="/property.html?id=${property.id}" class="btn btn-outline">View Details</a>
+                            ${currentUser.role === 'ADMIN' || property.sellerId === currentUser.id ? 
+                                `<button class="btn btn-secondary" onclick="editProperty(${property.id})">Edit</button>` : ''}
+                            ${currentUser.role === 'ADMIN' ? 
+                                `<button class="btn btn-danger" onclick="adminDeleteProperty(${property.id})">Delete</button>` : 
+                                (currentUser.role === 'SELLER' && property.sellerId === currentUser.id ? 
+                                    `<button class="btn btn-danger" onclick="deletePropertyWithConditions(${property.id})">Delete</button>` : '')
+                            }
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+    }
+
+    async function loadMyBookings() {
+        try {
+            let bookings = [];
+            // For admin users, load all bookings; for others, load their own bookings
+            if (currentUser.role === 'ADMIN') {
+                bookings = await fetchAllBookings();
+            } else {
+                bookings = await fetchBookingsByBuyer(currentUser.id);
+            }
+            displayMyBookings(bookings);
+        } catch (error) {
+            console.error('Failed to load bookings:', error);
+            document.getElementById('myBookings').innerHTML = '<p>Failed to load bookings.</p>';
+        }
+    }
+
+    function displayMyBookings(bookings) {
+        const container = document.getElementById('myBookings');
+
+        if (bookings.length === 0) {
+            container.innerHTML = '<p class="text-center">No bookings found.</p>';
+            return;
+        }
+
+        container.innerHTML = bookings.map(booking => `
+                <div class="property-card">
+                    <div class="property-content">
+                        <h3>Booking #${booking.id}</h3>
+                        <p><strong>Property:</strong> ${booking.propertyTitle || 'N/A'}</p>
+                        <p><strong>Buyer:</strong> ${booking.buyerUsername || 'N/A'}</p>
+                        <p><strong>Date:</strong> ${booking.bookingDate}</p>
+                        <p><strong>Time:</strong> ${booking.bookingTime}</p>
+                        <span class="status-badge status-${booking.status.toLowerCase()}">${booking.status}</span>
+                        ${currentUser.role === 'ADMIN' ? `
+                            <div class="property-actions">
+                                <button class="btn btn-secondary" onclick="editBooking(${booking.id})">Edit</button>
+                                <button class="btn btn-danger" onclick="deleteBooking(${booking.id})">Delete</button>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+    }
+
+    async function loadMyInquiries() {
+        try {
+            const filter = document.getElementById('inquiryFilter')?.value || '';
+            let inquiries = [];
+
+            if (currentUser.role === 'ADMIN') {
+                inquiries = filter ? await fetchInquiriesByStatus(filter) : await fetchAllInquiries();
+            } else {
+                inquiries = await fetchInquiriesBySender(currentUser.id);
+                if (filter) {
+                    inquiries = inquiries.filter(inquiry => inquiry.status === filter);
+                }
+            }
+
+            displayMyInquiries(inquiries);
+        } catch (error) {
+            console.error('Failed to load inquiries:', error);
+            document.getElementById('myInquiries').innerHTML = '<p class="error">Failed to load inquiries.</p>';
+        }
+    }
+
+    function displayMyInquiries(inquiries) {
+        const container = document.getElementById('myInquiries');
+
+        if (container) {
+            if (inquiries.length === 0) {
+                container.innerHTML = '<p class="text-center">No inquiries found.</p>';
+                return;
+            }
+
+            container.innerHTML = inquiries.map(inquiry => `
+                    <div class="property-card">
+                        <div class="property-content">
+                            <h3>Inquiry #${inquiry.id}</h3>
+                            <p><strong>Property:</strong> ${inquiry.propertyTitle || 'N/A'}</p>
+                            <p><strong>Message:</strong> ${inquiry.message}</p>
+                            <p><strong>Date:</strong> ${new Date(inquiry.createdAt).toLocaleDateString()}</p>
+                            <span class="status-badge ${getInquiryStatusClass(inquiry.status)}">${formatInquiryStatus(inquiry.status)}</span>
+                            <div class="property-actions">
+                                ${currentUser.role === 'ADMIN' ? `
+                                    <button class="btn btn-secondary" onclick="editInquiry(${inquiry.id})">Edit</button>
+                                    <button class="btn btn-danger" onclick="deleteInquiry(${inquiry.id})">Delete</button>
+                                ` : ''}
+                                ${inquiry.status === 'OPEN' ?
+                `<button class="btn btn-success" onclick="updateInquiryStatus(${inquiry.id}, 'RESOLVED')">Mark Resolved</button>` :
+                ''}
+                                ${inquiry.status === 'RESOLVED' ?
+                `<button class="btn btn-secondary" onclick="updateInquiryStatus(${inquiry.id}, 'ARCHIVED')">Archive</button>` :
+                ''}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+        } else {
+            console.error('[v0] Inquiries container not found');
+        }
+    }
+
+    async function loadMyOffers() {
+        try {
+            const filter = document.getElementById('offerFilter')?.value || '';
+            let offers = [];
+
+            if (currentUser.role === 'ADMIN') {
+                offers = filter ? await fetchOffersByStatus(filter) : await fetchAllOffers();
+            } else if (currentUser.role === 'SELLER' || currentUser.role === 'AGENT') {
+                // For sellers/agents, show offers on their properties
+                const properties = await fetchPropertiesBySeller(currentUser.id);
+                const allOffers = await Promise.all(
+                    properties.map(property => fetchOffersByProperty(property.id))
+                );
+                offers = allOffers.flat();
+                if (filter) {
+                    offers = offers.filter(offer => offer.status === filter);
+                }
+            } else {
+                offers = await fetchOffersByBuyer(currentUser.id);
+                if (filter) {
+                    offers = offers.filter(offer => offer.status === filter);
+                }
+            }
+
+            displayMyOffers(offers);
+        } catch (error) {
+            console.error('[v0] Failed to load offers:', error);
+            document.getElementById('myOffers').innerHTML = '<p class="error">Failed to load offers.</p>';
+        }
+    }
+
+    function displayMyOffers(offers) {
+        const container = document.getElementById('myOffers');
+
+        if (!container) {
+            console.error('[v0] Offers container not found');
+            return;
+        }
+
+        if (offers.length === 0) {
+            container.innerHTML = '<p class="text-center">No offers found.</p>';
+            return;
+        }
+
+        container.innerHTML = offers.map(offer => {
+            const isSellerView = currentUser.role === 'SELLER' || currentUser.role === 'AGENT' || currentUser.role === 'ADMIN';
+
+            return `
+                    <div class="property-card">
+                        <div class="property-content">
+                            <h3>Offer #${offer.id}</h3>
+                            <p><strong>Property:</strong> ${offer.propertyTitle || 'N/A'}</p>
+                            <p><strong>Buyer:</strong> ${offer.buyerUsername || 'N/A'}</p>
+                            <p><strong>Offer Price:</strong> Rs ${offer.price?.toLocaleString()}</p>
+                            <p><strong>Terms:</strong> ${offer.terms || 'No specific terms'}</p>
+                            <p><strong>Date:</strong> ${new Date(offer.createdAt).toLocaleDateString()}</p>
+                            <span class="status-badge ${getOfferStatusClass(offer.status)}">${formatOfferStatus(offer.status)}</span>
+                            <div class="property-actions">
+                                ${currentUser.role === 'ADMIN' ? `
+                                    <button class="btn btn-secondary" onclick="editOffer(${offer.id})">Edit</button>
+                                    <button class="btn btn-danger" onclick="deleteOffer(${offer.id})">Delete</button>
+                                ` : ''}
+                                ${isSellerView && offer.status === 'PENDING' ?
+                `<button class="btn btn-success" onclick="acceptOfferAction(${offer.id})">Accept</button>
+                                     <button class="btn btn-warning" onclick="counterOfferAction(${offer.id})">Counter</button>
+                                     <button class="btn btn-secondary" onclick="updateOfferStatus(${offer.id}, 'REJECTED')">Reject</button>` :
+                ''}
+                                ${!isSellerView && offer.status === 'PENDING' ?
+                `<button class="btn btn-outline" onclick="editOffer(${offer.id})">Edit Offer</button>` :
+                ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+        }).join('');
+    }
+
+    async function loadMyRentals() {
+        try {
+            let agreements = [];
+
+            if (currentUser.role === 'ADMIN') {
+                agreements = await fetchAllRentalAgreements();
+            } else if (currentUser.role === 'SELLER' || currentUser.role === 'AGENT') {
+                agreements = await fetchRentalAgreementsByLandlord(currentUser.id);
+            } else if (currentUser.role === 'BUYER') {
+                // For buyers, show rental agreements where they are the tenant (incoming agreements)
+                agreements = await fetchRentalAgreementsByTenant(currentUser.id);
+            } else {
+                agreements = await fetchRentalAgreementsByTenant(currentUser.id);
+            }
+
+            displayMyRentals(agreements);
+        } catch (error) {
+            console.error('[v0] Failed to load rental agreements:', error);
+            document.getElementById('myRentals').innerHTML = '<p class="error">Failed to load rental agreements.</p>';
+        }
+    }
+
+    function displayMyRentals(agreements) {
+        const container = document.getElementById('myRentals');
+
+        if (!container) {
+            console.error('[v0] Rentals container not found');
+            return;
+        }
+
+        if (agreements.length === 0) {
+            if (currentUser.role === 'BUYER') {
+                container.innerHTML = '<p class="text-center">No rental agreements found.</p>';
+            } else {
+                container.innerHTML = '<p class="text-center">No rental agreements found. <a href="/agreements.html">Create one</a></p>';
+            }
+            return;
+        }
+
+        container.innerHTML = agreements.map(agreement => {
+            const endDate = calculateRentalEndDate(agreement.startDate, agreement.durationMonths);
+            const daysLeft = getDaysUntilExpiry(agreement.startDate, agreement.durationMonths);
+
+            return `
+                    <div class="property-card">
+                        <div class="property-content">
+                            <h3>Agreement #${agreement.id}</h3>
+                            <p><strong>Property:</strong> ${agreement.propertyTitle || 'N/A'}</p>
+                            <p><strong>Tenant:</strong> ${agreement.tenantUsername || 'N/A'}</p>
+                            <p><strong>Landlord:</strong> ${agreement.landlordUsername || 'N/A'}</p>
+                            <p><strong>Monthly Rent:</strong> Rs ${agreement.rent?.toLocaleString()}</p>
+                            <p><strong>End Date:</strong> ${endDate.toLocaleDateString()}</p>
+                            ${agreement.status === 'ACTIVE' && daysLeft > 0 ?
+                `<p class="expiry-warning ${daysLeft <= 30 ? 'urgent' : ''}">
+                                    <strong>Days Remaining:</strong> ${daysLeft} days
+                                </p>` : ''}
+                            <span class="status-badge status-${agreement.status.toLowerCase()}">${formatRentalStatus(agreement.status)}</span>
+                            <div class="property-actions">
+                                ${currentUser.role === 'ADMIN' ? `
+                                    <button class="btn btn-secondary" onclick="editRentalAgreement(${agreement.id})">Edit</button>
+                                    <button class="btn btn-danger" onclick="deleteRentalAgreement(${agreement.id})">Delete</button>
+                                ` : ''}
+                                <a href="/agreements.html" class="btn btn-primary">View Full Agreement</a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+        }).join('');
+    }
+
+    async function handleAddProperty(e) {
+        e.preventDefault();
+
+        document.getElementById('propertyError').classList.add('hidden');
+        document.getElementById('propertySuccess').classList.add('hidden');
+
+        const propertyData = {
+            title: document.getElementById('propertyTitle').value.trim(),
+            type: document.getElementById('propertyType').value,
+            location: document.getElementById('propertyLocation').value.trim(),
+            description: document.getElementById('propertyDescription').value.trim(),
+            sellerId: currentUser.id
+        };
+
+        console.log('[v0] Form data collected:', propertyData);
+
+        // Validate required fields
+        if (!propertyData.title) {
+            showPropertyError('Please enter a property title');
+            return;
+        }
+
+        if (!propertyData.type) {
+            showPropertyError('Please select a property type');
+            return;
+        }
+
+        if (!propertyData.location) {
+            showPropertyError('Please enter a location');
+            return;
+        }
+
+        // Handle price/rent based on type
+        if (propertyData.type === 'SALE') {
+            const priceValue = document.getElementById('propertyPrice').value;
+            if (!priceValue || parseFloat(priceValue) <= 0) {
+                showPropertyError('Please enter a valid sale price');
+                return;
+            }
+            propertyData.price = parseFloat(priceValue);
+            propertyData.rentAmount = null;
+        } else if (propertyData.type === 'RENT') {
+            const rentValue = document.getElementById('propertyRent').value;
+            if (!rentValue || parseFloat(rentValue) <= 0) {
+                showPropertyError('Please enter a valid rent amount');
+                return;
+            }
+            propertyData.rentAmount = parseFloat(rentValue);
+            propertyData.price = null;
+        }
+
+        console.log('[v0] Final property data to submit:', propertyData);
+        console.log('[v0] Current user:', currentUser);
+
+        // Disable submit button
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Adding Property...';
+
+        try {
+            // Create FormData for file upload
+            const formData = new FormData();
+            formData.append('title', propertyData.title);
+            formData.append('type', propertyData.type);
+            formData.append('location', propertyData.location);
+            formData.append('description', propertyData.description);
+            formData.append('sellerId', propertyData.sellerId);
+            
+            if (propertyData.price) {
+                formData.append('price', propertyData.price);
+            }
+            if (propertyData.rentAmount) {
+                formData.append('rentAmount', propertyData.rentAmount);
+            }
+
+            // Add images if any
+            const imageFiles = document.getElementById('propertyImages').files;
+            if (imageFiles.length > 0) {
+                for (let i = 0; i < imageFiles.length; i++) {
+                    formData.append('files', imageFiles[i]);
+                }
+            }
+
+            const result = await createPropertyWithImages(formData);
+            console.log('[v0] Property created successfully:', result);
+            showPropertySuccess('Property added successfully!');
+            document.getElementById('addPropertyForm').reset();
+            clearImagePreview();
+            document.getElementById('priceGroup').classList.remove('hidden');
+            document.getElementById('rentGroup').classList.add('hidden');
+
+            // Re-enable button
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+
+            // Switch to properties tab after a short delay
+            setTimeout(() => {
+                showTab('properties');
+            }, 1500);
+        } catch (error) {
+            console.error('[v0] Failed to create property:', error);
+            console.error('[v0] Error details:', error.message);
+            showPropertyError('Failed to add property: ' + error.message);
+
+            // Re-enable button
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+        }
+    }
+
+    function showPropertyError(message) {
+        const errorDiv = document.getElementById('propertyError');
+        errorDiv.textContent = message;
+        errorDiv.classList.remove('hidden');
+        document.getElementById('propertySuccess').classList.add('hidden');
+    }
+
+    function handleImagePreview(e) {
+        const files = e.target.files;
+        const previewContainer = document.getElementById('imagePreview');
+        
+        clearImagePreview();
+        
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const previewDiv = document.createElement('div');
+                    previewDiv.className = 'image-preview';
+                    
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.alt = 'Property image preview';
+                    
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'remove-image';
+                    removeBtn.innerHTML = '×';
+                    removeBtn.onclick = function() {
+                        previewDiv.remove();
+                        removeImageFromInput(file);
+                    };
+                    
+                    previewDiv.appendChild(img);
+                    previewDiv.appendChild(removeBtn);
+                    previewContainer.appendChild(previewDiv);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+    }
+
+    function clearImagePreview() {
+        const previewContainer = document.getElementById('imagePreview');
+        previewContainer.innerHTML = '';
+    }
+
+    function removeImageFromInput(fileToRemove) {
+        const input = document.getElementById('propertyImages');
+        const dt = new DataTransfer();
+        
+        for (let i = 0; i < input.files.length; i++) {
+            if (input.files[i] !== fileToRemove) {
+                dt.items.add(input.files[i]);
+            }
+        }
+        
+        input.files = dt.files;
+    }
+
+    async function createPropertyWithImages(formData) {
+        const response = await fetch('/api/properties/create-with-images', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || `HTTP error! status: ${response.status}`);
+        }
+
+        return await response.json();
+    }
+
+    function showCurrentImages(property) {
+        const previewContainer = document.getElementById('editImagePreview');
+        previewContainer.innerHTML = '';
+        
+        if (property.images) {
+            const imageUrls = property.images.split(',');
+            imageUrls.forEach(imageUrl => {
+                if (imageUrl.trim()) {
+                    const previewDiv = document.createElement('div');
+                    previewDiv.className = 'image-preview';
+                    
+                    const img = document.createElement('img');
+                    img.src = imageUrl.trim();
+                    img.alt = 'Current property image';
+                    
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'remove-image';
+                    removeBtn.innerHTML = '×';
+                    removeBtn.onclick = function() {
+                        previewDiv.remove();
+                    };
+                    
+                    previewDiv.appendChild(img);
+                    previewDiv.appendChild(removeBtn);
+                    previewContainer.appendChild(previewDiv);
+                }
+            });
+        }
+    }
+
+    function handleEditImagePreview(e) {
+        const files = e.target.files;
+        const previewContainer = document.getElementById('editImagePreview');
+        
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const previewDiv = document.createElement('div');
+                    previewDiv.className = 'image-preview';
+                    
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.alt = 'New property image preview';
+                    
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'remove-image';
+                    removeBtn.innerHTML = '×';
+                    removeBtn.onclick = function() {
+                        previewDiv.remove();
+                        removeImageFromEditInput(file);
+                    };
+                    
+                    previewDiv.appendChild(img);
+                    previewDiv.appendChild(removeBtn);
+                    previewContainer.appendChild(previewDiv);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+    }
+
+    function removeImageFromEditInput(fileToRemove) {
+        const input = document.getElementById('editPropertyImages');
+        const dt = new DataTransfer();
+        
+        for (let i = 0; i < input.files.length; i++) {
+            if (input.files[i] !== fileToRemove) {
+                dt.items.add(input.files[i]);
+            }
+        }
+        
+        input.files = dt.files;
+    }
+
+    async function handleEditProperty(e) {
+        e.preventDefault();
+        
+        const propertyId = document.getElementById('editPropertyId').value;
+        const propertyData = new FormData();
+        
+        propertyData.append('title', document.getElementById('editPropertyTitle').value);
+        propertyData.append('type', document.getElementById('editPropertyType').value);
+        propertyData.append('location', document.getElementById('editPropertyLocation').value);
+        propertyData.append('description', document.getElementById('editPropertyDescription').value);
+        
+        // Add price or rent amount based on type
+        if (document.getElementById('editPropertyType').value === 'SALE') {
+            propertyData.append('price', document.getElementById('editPropertyPrice').value);
+        } else {
+            propertyData.append('rentAmount', document.getElementById('editPropertyRent').value);
+        }
+
+        // Add new images if any
+        const imageFiles = document.getElementById('editPropertyImages').files;
+        if (imageFiles.length > 0) {
+            for (let i = 0; i < imageFiles.length; i++) {
+                propertyData.append('files', imageFiles[i]);
+            }
+        }
+
+        try {
+            const response = await fetch(`/api/properties/${propertyId}/update-with-images`, {
+                method: 'PUT',
+                body: propertyData
+            });
+
+            if (response.ok) {
+                alert('Property updated successfully!');
+                closeEditPropertyForm();
+                loadMyProperties();
+            } else {
+                const errorText = await response.text();
+                alert('Failed to update property: ' + errorText);
+            }
+        } catch (error) {
+            console.error('Error updating property:', error);
+            alert('Failed to update property: ' + error.message);
+        }
+    }
+
+    function closeEditPropertyForm() {
+        document.getElementById('editPropertyModal').classList.add('hidden');
+        document.getElementById('editPropertyForm').reset();
+        document.getElementById('editImagePreview').innerHTML = '';
+    }
+
+    function showPropertySuccess(message) {
+        const successDiv = document.getElementById('propertySuccess');
+        successDiv.textContent = message;
+        successDiv.classList.remove('hidden');
+        document.getElementById('propertyError').classList.add('hidden');
+    }
+
+    async function editProperty(propertyId) {
+        try {
+            console.log('[v0] Loading property for editing:', propertyId);
+            
+            // Fetch property details
+            const response = await fetch(`/api/properties/${propertyId}`);
+            if (!response.ok) {
+                throw new Error('Failed to load property details');
+            }
+            
+            const property = await response.json();
+            console.log('[v0] Property loaded:', property);
+            
+            // Populate edit form
+            document.getElementById('editPropertyId').value = property.id;
+            document.getElementById('editPropertyTitle').value = property.title || '';
+            document.getElementById('editPropertyType').value = property.type || '';
+            document.getElementById('editPropertyLocation').value = property.location || '';
+            document.getElementById('editPropertyDescription').value = property.description || '';
+            
+            // Handle price/rent based on type
+            if (property.type === 'SALE') {
+                document.getElementById('editPropertyPrice').value = property.price || '';
+                document.getElementById('editPropertyRent').value = '';
+                document.getElementById('editPriceGroup').classList.remove('hidden');
+                document.getElementById('editRentGroup').classList.add('hidden');
+            } else if (property.type === 'RENT') {
+                document.getElementById('editPropertyRent').value = property.rentAmount || '';
+                document.getElementById('editPropertyPrice').value = '';
+                document.getElementById('editPriceGroup').classList.add('hidden');
+                document.getElementById('editRentGroup').classList.remove('hidden');
+            }
+            
+            // Show current images if any
+            showCurrentImages(property);
+            
+            // Show modal
+            document.getElementById('editPropertyModal').classList.remove('hidden');
+            
+        } catch (error) {
+            console.error('[v0] Error loading property for edit:', error);
+            alert('Failed to load property details: ' + error.message);
+        }
+    }
+
+    async function acceptOfferAction(offerId) {
+        if (confirm('Are you sure you want to accept this offer? This will reject all other offers for this property.')) {
+            try {
+                await acceptOffer(offerId);
+                alert('Offer accepted successfully!');
+                loadMyOffers();
+            } catch (error) {
+                alert('Failed to accept offer: ' + error.message);
+            }
+        }
+    }
+
+    async function counterOfferAction(offerId) {
+        const newPrice = prompt('Enter counter offer price:');
+        const newTerms = prompt('Enter counter offer terms (optional):');
+
+        if (newPrice && !isNaN(newPrice)) {
+            try {
+                await counterOffer(offerId, {
+                    price: parseFloat(newPrice),
+                    terms: newTerms || ''
+                });
+                alert('Counter offer submitted successfully!');
+                loadMyOffers();
+            } catch (error) {
+                alert('Failed to submit counter offer: ' + error.message);
+            }
+        }
+    }
+
+    let currentOffer = null;
+
+    async function editOffer(offerId) {
+        try {
+            // Fetch offer details
+            currentOffer = await apiCall(`/offers/${offerId}`);
+            
+            // Create edit modal
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>Edit Offer</h2>
+                        <span class="close" onclick="closeModal(this)">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <form id="editOfferForm">
+                            <div class="form-group">
+                                <label for="editOfferPrice">Price (Rs):</label>
+                                <input type="number" id="editOfferPrice" value="${currentOffer.price}" step="0.01" min="0" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="editOfferTerms">Terms:</label>
+                                <textarea id="editOfferTerms" rows="4" required>${currentOffer.terms || ''}</textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="editOfferStatus">Status:</label>
+                                <select id="editOfferStatus" required>
+                                    <option value="PENDING" ${currentOffer.status === 'PENDING' ? 'selected' : ''}>Pending</option>
+                                    <option value="ACCEPTED" ${currentOffer.status === 'ACCEPTED' ? 'selected' : ''}>Accepted</option>
+                                    <option value="REJECTED" ${currentOffer.status === 'REJECTED' ? 'selected' : ''}>Rejected</option>
+                                    <option value="EXPIRED" ${currentOffer.status === 'EXPIRED' ? 'selected' : ''}>Expired</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal(this)">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="saveOfferEdit(${offerId})">Save Changes</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            modal.style.display = 'block';
+            
+        } catch (error) {
+            alert('Failed to load offer details: ' + error.message);
+        }
+    }
+
+    async function saveOfferEdit(offerId) {
+        try {
+            const price = parseFloat(document.getElementById('editOfferPrice').value);
+            const terms = document.getElementById('editOfferTerms').value;
+            const status = document.getElementById('editOfferStatus').value;
+            
+            // Update offer details
+            await apiCall(`/offers/${offerId}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    propertyId: currentOffer.propertyId,
+                    buyerId: currentOffer.buyerId,
+                    price: price,
+                    terms: terms
+                })
+            });
+            
+            // Update status if changed
+            if (status !== currentOffer.status) {
+                await apiCall(`/offers/${offerId}/status`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ status: status })
+                });
+            }
+            
+            alert('Offer updated successfully!');
+            closeModal(document.querySelector('.modal'));
+            loadMyOffers();
+            
+        } catch (error) {
+            alert('Failed to update offer: ' + error.message);
+        }
+    }
+
+    async function updateInquiryStatus(inquiryId, newStatus) {
+        try {
+            await updateInquiryStatusAPI(inquiryId, newStatus);
+            alert('Inquiry status updated successfully!');
+            loadMyInquiries();
+        } catch (error) {
+            alert('Failed to update inquiry status: ' + error.message);
+        }
+    }
+
+    async function updateInquiryStatusAPI(inquiryId, status) {
+        return await apiCall(`/inquiries/${inquiryId}/status`, {
+            method: "PATCH",
+            body: JSON.stringify({ status }),
+        });
+    }
+
+    async function updateOfferStatus(offerId, newStatus) {
+        try {
+            await updateOfferStatusAPI(offerId, newStatus);
+            alert('Offer status updated successfully!');
+            loadMyOffers();
+        } catch (error) {
+            alert('Failed to update offer status: ' + error.message);
+        }
+    }
+
+    async function updateOfferStatusAPI(offerId, status) {
+        return await apiCall(`/offers/${offerId}/status`, {
+            method: "PATCH",
+            body: JSON.stringify({ status }),
+        });
+    }
+
+    function getInquiryStatusClass(status) {
+        // Implementation for getting inquiry status class
+        return 'status-' + status.toLowerCase();
+    }
+
+    function formatInquiryStatus(status) {
+        // Implementation for formatting inquiry status
+        return status;
+    }
+
+    function getOfferStatusClass(status) {
+        // Implementation for getting offer status class
+        return 'status-' + status.toLowerCase();
+    }
+
+    function formatOfferStatus(status) {
+        // Implementation for formatting offer status
+        return status;
+    }
+
+    function formatRentalStatus(status) {
+        // Implementation for formatting rental status
+        return status;
+    }
+
+    function calculateRentalEndDate(startDate, durationMonths) {
+        const endDate = new Date(startDate);
+        endDate.setMonth(endDate.getMonth() + durationMonths);
+        return endDate;
+    }
+
+    function getDaysUntilExpiry(startDate, durationMonths) {
+        const currentDate = new Date();
+        const endDate = calculateRentalEndDate(startDate, durationMonths);
+        const timeDifference = endDate - currentDate;
+        const daysDifference = timeDifference / (1000 * 60 * 60 * 24);
+        return Math.ceil(daysDifference);
+    }
+
+    // Admin CRUD Functions
+    async function adminDeleteProperty(propertyId) {
+        if (confirm('Are you sure you want to delete this property? This action cannot be undone.')) {
+            try {
+                await apiCall(`/properties/${propertyId}`, { method: 'DELETE' });
+                alert('Property deleted successfully!');
+                loadMyProperties();
+            } catch (error) {
+                alert('Failed to delete property: ' + error.message);
+            }
+        }
+    }
+
+    let currentBooking = null;
+
+    async function editBooking(bookingId) {
+        try {
+            // Fetch booking details
+            currentBooking = await apiCall(`/bookings/${bookingId}`);
+            
+            // Create edit modal
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>Edit Booking</h2>
+                        <span class="close" onclick="closeModal(this)">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <form id="editBookingForm">
+                            <div class="form-group">
+                                <label for="editBookingDate">Booking Date:</label>
+                                <input type="date" id="editBookingDate" value="${currentBooking.bookingDate}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="editBookingTime">Booking Time:</label>
+                                <input type="time" id="editBookingTime" value="${currentBooking.bookingTime}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="editBookingStatus">Status:</label>
+                                <select id="editBookingStatus" required>
+                                    <option value="PENDING" ${currentBooking.status === 'PENDING' ? 'selected' : ''}>Pending</option>
+                                    <option value="CONFIRMED" ${currentBooking.status === 'CONFIRMED' ? 'selected' : ''}>Confirmed</option>
+                                    <option value="CANCELLED" ${currentBooking.status === 'CANCELLED' ? 'selected' : ''}>Cancelled</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal(this)">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="saveBookingEdit(${bookingId})">Save Changes</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            modal.style.display = 'block';
+            
+        } catch (error) {
+            alert('Failed to load booking details: ' + error.message);
+        }
+    }
+
+    async function saveBookingEdit(bookingId) {
+        try {
+            const bookingDate = document.getElementById('editBookingDate').value;
+            const bookingTime = document.getElementById('editBookingTime').value;
+            const status = document.getElementById('editBookingStatus').value;
+            
+            // Update booking details
+            await apiCall(`/bookings/${bookingId}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    propertyId: currentBooking.propertyId,
+                    buyerId: currentBooking.buyerId,
+                    bookingDate: bookingDate,
+                    bookingTime: bookingTime
+                })
+            });
+            
+            // Update status if changed
+            if (status !== currentBooking.status) {
+                await apiCall(`/bookings/${bookingId}/status`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ status: status })
+                });
+            }
+            
+            alert('Booking updated successfully!');
+            closeModal(document.querySelector('.modal'));
+            loadMyBookings();
+            
+        } catch (error) {
+            alert('Failed to update booking: ' + error.message);
+        }
+    }
+
+    async function deleteBooking(bookingId) {
+        if (confirm('Are you sure you want to delete this booking? This action cannot be undone.')) {
+            try {
+                await apiCall(`/bookings/${bookingId}`, { method: 'DELETE' });
+                alert('Booking deleted successfully!');
+                loadMyBookings();
+            } catch (error) {
+                alert('Failed to delete booking: ' + error.message);
+            }
+        }
+    }
+
+    let currentInquiry = null;
+
+    function closeModal(element) {
+        const modal = element.closest('.modal');
+        if (modal) {
+            modal.remove();
+        }
+    }
+
+    async function editInquiry(inquiryId) {
+        try {
+            // Fetch inquiry details
+            currentInquiry = await apiCall(`/inquiries/${inquiryId}`);
+            
+            // Create edit modal
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>Edit Inquiry</h2>
+                        <span class="close" onclick="closeModal(this)">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <form id="editInquiryForm">
+                            <div class="form-group">
+                                <label for="editInquiryMessage">Message:</label>
+                                <textarea id="editInquiryMessage" rows="4" required>${currentInquiry.message}</textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="editInquiryStatus">Status:</label>
+                                <select id="editInquiryStatus" required>
+                                    <option value="OPEN" ${currentInquiry.status === 'OPEN' ? 'selected' : ''}>Open</option>
+                                    <option value="RESOLVED" ${currentInquiry.status === 'RESOLVED' ? 'selected' : ''}>Resolved</option>
+                                    <option value="ARCHIVED" ${currentInquiry.status === 'ARCHIVED' ? 'selected' : ''}>Archived</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal(this)">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="saveInquiryEdit(${inquiryId})">Save Changes</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            modal.style.display = 'block';
+            
+        } catch (error) {
+            alert('Failed to load inquiry details: ' + error.message);
+        }
+    }
+
+    async function saveInquiryEdit(inquiryId) {
+        try {
+            const message = document.getElementById('editInquiryMessage').value;
+            const status = document.getElementById('editInquiryStatus').value;
+            
+            // Update inquiry details
+            await apiCall(`/inquiries/${inquiryId}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    propertyId: currentInquiry.propertyId,
+                    senderId: currentInquiry.senderId,
+                    message: message
+                })
+            });
+            
+            // Update status if changed
+            if (status !== currentInquiry.status) {
+                await apiCall(`/inquiries/${inquiryId}/status`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ status: status })
+                });
+            }
+            
+            alert('Inquiry updated successfully!');
+            closeModal(document.querySelector('.modal'));
+            loadMyInquiries();
+            
+        } catch (error) {
+            alert('Failed to update inquiry: ' + error.message);
+        }
+    }
+
+    async function deleteInquiry(inquiryId) {
+        if (confirm('Are you sure you want to delete this inquiry? This action cannot be undone.')) {
+            try {
+                await apiCall(`/inquiries/${inquiryId}`, { method: 'DELETE' });
+                alert('Inquiry deleted successfully!');
+                loadMyInquiries();
+            } catch (error) {
+                alert('Failed to delete inquiry: ' + error.message);
+            }
+        }
+    }
+
+    async function deleteOffer(offerId) {
+        if (confirm('Are you sure you want to delete this offer? This action cannot be undone.')) {
+            try {
+                await apiCall(`/offers/${offerId}`, { method: 'DELETE' });
+                alert('Offer deleted successfully!');
+                loadMyOffers();
+            } catch (error) {
+                alert('Failed to delete offer: ' + error.message);
+            }
+        }
+    }
+
+    let currentAgreement = null;
+
+    async function editRentalAgreement(agreementId) {
+        try {
+            // Fetch agreement details
+            currentAgreement = await apiCall(`/rental-agreements/${agreementId}`);
+            
+            // Create edit modal
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>Edit Rental Agreement</h2>
+                        <span class="close" onclick="closeModal(this)">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <form id="editAgreementForm">
+                            <div class="form-group">
+                                <label for="editAgreementRent">Monthly Rent (Rs):</label>
+                                <input type="number" id="editAgreementRent" value="${currentAgreement.rent}" step="0.01" min="0" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="editAgreementDuration">Duration (Months):</label>
+                                <input type="number" id="editAgreementDuration" value="${currentAgreement.durationMonths}" min="1" max="120" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="editAgreementStartDate">Start Date:</label>
+                                <input type="date" id="editAgreementStartDate" value="${currentAgreement.startDate}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="editAgreementStatus">Status:</label>
+                                <select id="editAgreementStatus" required>
+                                    <option value="PENDING" ${currentAgreement.status === 'PENDING' ? 'selected' : ''}>Pending</option>
+                                    <option value="ACTIVE" ${currentAgreement.status === 'ACTIVE' ? 'selected' : ''}>Active</option>
+                                    <option value="TERMINATED" ${currentAgreement.status === 'TERMINATED' ? 'selected' : ''}>Terminated</option>
+                                    <option value="EXPIRED" ${currentAgreement.status === 'EXPIRED' ? 'selected' : ''}>Expired</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal(this)">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="saveAgreementEdit(${agreementId})">Save Changes</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            modal.style.display = 'block';
+            
+        } catch (error) {
+            alert('Failed to load agreement details: ' + error.message);
+        }
+    }
+
+    async function saveAgreementEdit(agreementId) {
+        try {
+            const rent = parseFloat(document.getElementById('editAgreementRent').value);
+            const durationMonths = parseInt(document.getElementById('editAgreementDuration').value);
+            const startDate = document.getElementById('editAgreementStartDate').value;
+            const status = document.getElementById('editAgreementStatus').value;
+            
+            // Update agreement details
+            await apiCall(`/rental-agreements/${agreementId}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    propertyId: currentAgreement.propertyId,
+                    tenantId: currentAgreement.tenantId,
+                    landlordId: currentAgreement.landlordId,
+                    rent: rent,
+                    durationMonths: durationMonths,
+                    startDate: startDate
+                })
+            });
+            
+            // Update status if changed
+            if (status !== currentAgreement.status) {
+                await apiCall(`/rental-agreements/${agreementId}/status`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ status: status })
+                });
+            }
+            
+            alert('Rental agreement updated successfully!');
+            closeModal(document.querySelector('.modal'));
+            loadMyRentals();
+            
+        } catch (error) {
+            alert('Failed to update rental agreement: ' + error.message);
+        }
+    }
+
+    async function deleteRentalAgreement(agreementId) {
+        if (confirm('Are you sure you want to delete this rental agreement? This action cannot be undone.')) {
+            try {
+                await apiCall(`/rental-agreements/${agreementId}`, { method: 'DELETE' });
+                alert('Rental agreement deleted successfully!');
+                loadMyRentals();
+            } catch (error) {
+                alert('Failed to delete rental agreement: ' + error.message);
+            }
+        }
+    }
+
+    // User Management Functions
+    async function loadAllUsers() {
+        const loadingEl = document.getElementById('userManagementLoading');
+        const errorEl = document.getElementById('userManagementError');
+        const container = document.getElementById('allUsers');
+
+        try {
+            if (loadingEl) loadingEl.classList.remove('hidden');
+            if (errorEl) errorEl.classList.add('hidden');
+
+            const filter = document.getElementById('userRoleFilter')?.value || '';
+            let users = [];
+
+            if (filter) {
+                users = await fetchUsersByRole(filter);
+            } else {
+                users = await fetchAllUsers();
+            }
+
+            displayAllUsers(users);
+            if (loadingEl) loadingEl.classList.add('hidden');
+        } catch (error) {
+            console.error('Failed to load users:', error);
+            if (loadingEl) loadingEl.classList.add('hidden');
+            if (errorEl) {
+                errorEl.textContent = 'Failed to load users: ' + error.message;
+                errorEl.classList.remove('hidden');
+            }
+            if (container) {
+                container.innerHTML = '<p class="error">Failed to load users. Please try again.</p>';
+            }
+        }
+    }
+
+    function displayAllUsers(users) {
+        const container = document.getElementById('allUsers');
+
+        if (!container) {
+            console.error('Users container not found');
+            return;
+        }
+
+        if (users.length === 0) {
+            container.innerHTML = '<p class="text-center">No users found.</p>';
+            return;
+        }
+
+        container.innerHTML = users.map(user => `
+                <div class="property-card">
+                    <div class="property-content">
+                        <h3>${user.username}</h3>
+                        <p><strong>Email:</strong> ${user.email}</p>
+                        <p><strong>Role:</strong> ${user.role}</p>
+                        <p><strong>User ID:</strong> ${user.id}</p>
+                        <span class="status-badge status-${user.role.toLowerCase()}">${user.role}</span>
+                        <div class="property-actions">
+                            <button class="btn btn-secondary" onclick="editUser(${user.id})">Edit</button>
+                            ${user.id !== currentUser.id ? 
+                                `<button class="btn btn-danger" onclick="deleteUser(${user.id})">Delete</button>` : 
+                                `<span class="text-muted">Cannot delete yourself</span>`
+                            }
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+    }
+
+    function showAddUserForm() {
+        document.getElementById('addUserModal').classList.remove('hidden');
+    }
+
+    function closeAddUserForm() {
+        document.getElementById('addUserModal').classList.add('hidden');
+        document.getElementById('addUserForm').reset();
+    }
+
+    async function handleAddUser(e) {
+        e.preventDefault();
+        
+        const userData = {
+            username: document.getElementById('newUsername').value,
+            email: document.getElementById('newEmail').value,
+            password: document.getElementById('newPassword').value,
+            role: document.getElementById('newRole').value
+        };
+
+        try {
+            await createUser(userData);
+            alert('User created successfully!');
+            closeAddUserForm();
+            loadAllUsers();
+        } catch (error) {
+            alert('Failed to create user: ' + error.message);
+        }
+    }
+
+    async function editUser(userId) {
+        try {
+            const user = await fetchUserById(userId);
+            // Pre-fill form with user data
+            document.getElementById('newUsername').value = user.username;
+            document.getElementById('newEmail').value = user.email;
+            document.getElementById('newRole').value = user.role;
+            document.getElementById('newPassword').value = '';
+            
+            // Update form title and submit handler
+            document.querySelector('#addUserModal h3').textContent = 'Edit User';
+            document.getElementById('addUserForm').onsubmit = async (e) => {
+                e.preventDefault();
+                try {
+                    const updateData = {
+                        username: document.getElementById('newUsername').value,
+                        email: document.getElementById('newEmail').value,
+                        role: document.getElementById('newRole').value
+                    };
+                    
+                    if (document.getElementById('newPassword').value) {
+                        updateData.password = document.getElementById('newPassword').value;
+                    }
+                    
+                    await updateUser(userId, updateData);
+                    alert('User updated successfully!');
+                    closeAddUserForm();
+                    loadAllUsers();
+                } catch (error) {
+                    alert('Failed to update user: ' + error.message);
+                }
+            };
+            
+            showAddUserForm();
+        } catch (error) {
+            alert('Failed to load user data: ' + error.message);
+        }
+    }
+
+    async function deleteUser(userId) {
+        if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+            try {
+                await deleteUserById(userId);
+                alert('User deleted successfully!');
+                loadAllUsers();
+            } catch (error) {
+                alert('Failed to delete user: ' + error.message);
+            }
+        }
+    }
+
+    async function deletePropertyWithConditions(propertyId) {
+        try {
+            // Check for open inquiries and pending offers
+            const [inquiries, offers] = await Promise.all([
+                fetchInquiriesByProperty(propertyId),
+                fetchOffersByProperty(propertyId)
+            ]);
+
+            const openInquiries = inquiries.filter(inquiry => inquiry.status === 'OPEN');
+            const pendingOffers = offers.filter(offer => offer.status === 'PENDING');
+
+            let errorMessage = '';
+            if (openInquiries.length > 0) {
+                errorMessage += `Cannot delete property: ${openInquiries.length} open inquiry(ies) exist.\n`;
+            }
+            if (pendingOffers.length > 0) {
+                errorMessage += `Cannot delete property: ${pendingOffers.length} pending offer(s) exist.\n`;
+            }
+
+            if (errorMessage) {
+                alert(errorMessage + '\nPlease resolve all inquiries and offers before deleting the property.');
+                return;
+            }
+
+            // If no conditions are violated, proceed with deletion
+            if (confirm('Are you sure you want to delete this property? This action cannot be undone.')) {
+                await deletePropertyById(propertyId);
+                alert('Property deleted successfully!');
+                loadMyProperties();
+            }
+        } catch (error) {
+            console.error('Error checking property conditions:', error);
+            alert('Failed to check property conditions: ' + error.message);
+        }
+    }
+
+    async function deleteProperty(propertyId) {
+        if (confirm('Are you sure you want to delete this property? This action cannot be undone.')) {
+            try {
+                await deletePropertyById(propertyId);
+                alert('Property deleted successfully!');
+                loadMyProperties();
+            } catch (error) {
+                alert('Failed to delete property: ' + error.message);
+            }
+        }
+    }
+
+    async function deleteBooking(bookingId) {
+        if (confirm('Are you sure you want to delete this booking? This action cannot be undone.')) {
+            try {
+                await deleteBookingById(bookingId);
+                alert('Booking deleted successfully!');
+                loadMyBookings();
+            } catch (error) {
+                alert('Failed to delete booking: ' + error.message);
+            }
+        }
+    }
+
+    // API Functions for User Management
+    async function fetchAllUsers() {
+        return await apiCall('/users');
+    }
+
+    async function fetchUsersByRole(role) {
+        return await apiCall(`/users/role/${role}`);
+    }
+
+    async function fetchUserById(userId) {
+        return await apiCall(`/users/${userId}`);
+    }
+
+    async function createUser(userData) {
+        return await apiCall('/users/register', {
+            method: 'POST',
+            body: JSON.stringify(userData)
+        });
+    }
+
+    async function updateUser(userId, userData) {
+        return await apiCall(`/users/${userId}`, {
+            method: 'PUT',
+            body: JSON.stringify(userData)
+        });
+    }
+
+    async function deleteUserById(userId) {
+        return await apiCall(`/users/${userId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    async function deletePropertyById(propertyId) {
+        return await apiCall(`/properties/${propertyId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    async function deleteBookingById(bookingId) {
+        return await apiCall(`/bookings/${bookingId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    async function fetchInquiriesByProperty(propertyId) {
+        return await apiCall(`/inquiries/property/${propertyId}`);
+    }
+
+    async function fetchOffersByProperty(propertyId) {
+        return await apiCall(`/offers/property/${propertyId}`);
+    }
+
+    async function apiCall(url, options = {}) {
+        const config = {
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers,
+            },
+            ...options,
+        };
+
+        try {
+            const response = await fetch(`/api${url}`, config);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || `HTTP error! status: ${response.status}`);
+            }
+
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                return await response.json();
+            } else {
+                return await response.text();
+            }
+        } catch (error) {
+            console.error('API call failed:', error);
+            throw error;
+        }
+    }
+
+    function logout() {
+        console.log('[v0] Logging out...');
+        localStorage.removeItem('currentUser');
+        window.location.href = '/';
+    }
+</script>
+
+<footer class="footer">
+    <div class="container">
+        <p>Copyright 2025 - Project Group 2025-Y2-S1-MLB-B7G2-01</p>
+    </div>
+</footer>
+</body>
+</html>

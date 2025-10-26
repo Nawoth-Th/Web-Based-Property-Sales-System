@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - PropertyHub</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="header">
+    <nav class="nav">
+        <a href="/" class="logo">PropertyHub</a>
+        <ul class="nav-links">
+            <li><a href="/">Home</a></li>
+            <li><a href="/offers.html">Offers</a></li>
+            <li><a href="/agreements.html">Agreements</a></li>
+            <li><a href="/login.html">Login</a></li>
+            <li><a href="/register.html">Register</a></li>
+        </ul>
+    </nav>
+</header>
+
+<main class="container">
+    <div class="form-container">
+        <h1 class="form-title">Register for PropertyHub</h1>
+
+        <div id="error" class="error hidden"></div>
+        <div id="success" class="success hidden"></div>
+
+        <form id="registerForm">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+                <label for="role">Role</label>
+                <select id="role" class="form-control" required>
+                    <option value="">Select Role</option>
+                    <option value="BUYER">Buyer</option>
+                    <option value="SELLER">Seller</option>
+                    <option value="RENTER">Renter</option>
+                    <option value="AGENT">Agent</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Register</button>
+            </div>
+        </form>
+
+        <div class="text-center mt-4">
+            <p>Already have an account? <a href="/login.html">Login here</a></p>
+        </div>
+    </div>
+</main>
+
+<script src="/js/script.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const currentUser = localStorage.getItem('currentUser');
+        if (currentUser) {
+            console.log('[v0] User already logged in, redirecting to dashboard');
+            window.location.href = '/dashboard.html';
+            return;
+        }
+
+        document.getElementById('registerForm').addEventListener('submit', handleRegister);
+    });
+
+    async function handleRegister(e) {
+        e.preventDefault();
+
+        const userData = {
+            username: document.getElementById('username').value,
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value,
+            role: document.getElementById('role').value
+        };
+
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Registering...';
+
+        try {
+            const user = await registerUser(userData);
+            showSuccess('Registration successful! Redirecting to login...');
+            document.getElementById('registerForm').reset();
+
+            setTimeout(() => {
+                window.location.href = '/login.html';
+            }, 2000);
+
+        } catch (error) {
+            showError('Registration failed: ' + error.message);
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+        }
+    }
+
+    function showError(message) {
+        const errorDiv = document.getElementById('error');
+        errorDiv.textContent = message;
+        errorDiv.classList.remove('hidden');
+        document.getElementById('success').classList.add('hidden');
+    }
+
+    function showSuccess(message) {
+        const successDiv = document.getElementById('success');
+        successDiv.textContent = message;
+        successDiv.classList.remove('hidden');
+        document.getElementById('error').classList.add('hidden');
+    }
+</script>
+
+<footer class="footer">
+    <div class="container">
+        <p>Copyright 2025 - Project Group 2025-Y2-S1-MLB-B7G2-01</p>
+    </div>
+</footer>
+</body>
+</html>

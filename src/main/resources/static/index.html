@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Property Sales Management System</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="header">
+    <nav class="nav">
+        <a href="/" class="logo">PropertyHub</a>
+        <ul class="nav-links">
+            <li><a href="/">Home</a></li>
+            <li><a href="/offers.html">Offers</a></li>
+            <li><a href="/agreements.html">Agreements</a></li>
+            <!-- Show login/register or dashboard based on auth state -->
+            <li id="authLinks">
+                <a href="/login.html">Login</a>
+            </li>
+            <li id="registerLink">
+                <a href="/register.html">Register</a>
+            </li>
+            <li id="dashboardLink" style="display: none;">
+                <a href="/dashboard.html">Dashboard</a>
+            </li>
+            <li id="logoutLink" style="display: none;">
+                <a href="#" onclick="handleLogout()">Logout</a>
+            </li>
+        </ul>
+    </nav>
+</header>
+
+<main>
+    <section class="hero">
+        <div class="container">
+            <h1>Find Your Dream Property</h1>
+            <p>Discover the perfect home or investment opportunity with our comprehensive property management system</p>
+        </div>
+    </section>
+
+    <div class="container">
+        <section class="search-section">
+            <form class="search-form" id="searchForm">
+                <div class="form-group">
+                    <label for="type">Property Type</label>
+                    <select id="type" class="form-control">
+                        <option value="">All Types</option>
+                        <option value="SALE">For Sale</option>
+                        <option value="RENT">For Rent</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="location">Location</label>
+                    <input type="text" id="location" class="form-control" placeholder="Enter location">
+                </div>
+                <div class="form-group">
+                    <label for="minPrice">Min Price</label>
+                    <input type="number" id="minPrice" class="form-control" placeholder="0">
+                </div>
+                <div class="form-group">
+                    <label for="maxPrice">Max Price</label>
+                    <input type="number" id="maxPrice" class="form-control" placeholder="Any">
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">Search Properties</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="properties-section">
+            <div id="loading" class="loading hidden">
+                <p>Loading properties...</p>
+            </div>
+            <div id="error" class="error hidden"></div>
+            <div id="propertiesGrid" class="properties-grid"></div>
+        </section>
+    </div>
+</main>
+
+<footer class="footer">
+    <div class="container">
+        <p>Copyright 2025 - Project Group 2025-Y2-S1-MLB-B7G2-01</p>
+    </div>
+</footer>
+
+<script src="/js/script.js"></script>
+<script>
+    function updateNavigation() {
+        const currentUser = localStorage.getItem('currentUser');
+        const authLinks = document.getElementById('authLinks');
+        const registerLink = document.getElementById('registerLink');
+        const dashboardLink = document.getElementById('dashboardLink');
+        const logoutLink = document.getElementById('logoutLink');
+
+        if (currentUser) {
+            // User is logged in
+            authLinks.style.display = 'none';
+            registerLink.style.display = 'none';
+            dashboardLink.style.display = 'block';
+            logoutLink.style.display = 'block';
+        } else {
+            // User is not logged in
+            authLinks.style.display = 'block';
+            registerLink.style.display = 'block';
+            dashboardLink.style.display = 'none';
+            logoutLink.style.display = 'none';
+        }
+    }
+
+    function handleLogout() {
+        localStorage.removeItem('currentUser');
+        updateNavigation();
+        window.location.href = '/';
+    }
+
+    // Initialize the properties page
+    document.addEventListener('DOMContentLoaded', function() {
+        updateNavigation();
+        loadProperties();
+
+        // Handle search form submission
+        document.getElementById('searchForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            searchProperties();
+        });
+    });
+</script>
+</body>
+</html>

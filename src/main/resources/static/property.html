@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Property Details - PropertyHub</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="header">
+    <nav class="nav">
+        <a href="/" class="logo">PropertyHub</a>
+        <ul class="nav-links">
+            <li><a href="/">Home</a></li>
+            <li><a href="/offers.html">Offers</a></li>
+            <li><a href="/agreements.html">Agreements</a></li>
+            <li><a href="/login.html">Login</a></li>
+            <li><a href="/register.html">Register</a></li>
+            <li><a href="/dashboard.html">Dashboard</a></li>
+        </ul>
+    </nav>
+</header>
+
+<main class="container">
+    <div id="loading" class="loading">
+        <p>Loading property details...</p>
+    </div>
+
+    <div id="error" class="error hidden"></div>
+
+    <div id="propertyDetail" class="hidden">
+        <div class="property-detail">
+            <div class="property-detail-image" id="propertyImage"><i class="fas fa-home"></i></div>
+            <div class="property-detail-content">
+                <div class="property-detail-header">
+                    <div class="property-detail-info">
+                        <h1 id="propertyTitle"></h1>
+                        <p class="property-location" id="propertyLocation"><i class="fas fa-map-marker-alt"></i> </p>
+                        <span id="propertyType" class="property-type"></span>
+                        <span id="propertyStatus" class="status-badge"></span>
+                    </div>
+                    <div class="property-detail-price" id="propertyPrice"></div>
+                </div>
+
+                <div class="property-meta">
+                    <div class="meta-item">
+                        <div class="meta-label">Property ID</div>
+                        <div class="meta-value" id="propertyId"></div>
+                    </div>
+                    <div class="meta-item">
+                        <div class="meta-label">Listed By</div>
+                        <div class="meta-value" id="propertySeller"></div>
+                    </div>
+                    <div class="meta-item">
+                        <div class="meta-label">Listed Date</div>
+                        <div class="meta-value" id="propertyDate"></div>
+                    </div>
+                </div>
+
+                <div class="property-description">
+                    <h3>Description</h3>
+                    <p id="propertyDescription"></p>
+                </div>
+
+                <div class="property-actions">
+                    <button class="btn btn-primary" onclick="bookVisit()"><i class="fas fa-calendar-alt"></i> Book Visit</button>
+                    <button class="btn btn-secondary" onclick="sendInquiry()"><i class="fas fa-comment"></i> Send Inquiry</button>
+                    <button class="btn btn-success" onclick="makeOffer()"><i class="fas fa-handshake"></i> Make Offer</button>
+                    <button class="btn btn-warning" id="rentalBtn" onclick="createRental()" style="display: none;"><i class="fas fa-file-contract"></i> Create Rental Agreement</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Booking Form Modal -->
+        <div id="bookingModal" class="hidden">
+            <div class="form-container">
+                <h2 class="form-title">Book a Visit</h2>
+                <form id="bookingForm">
+                    <div class="form-group">
+                        <label for="bookingDate">Preferred Date</label>
+                        <input type="date" id="bookingDate" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="bookingTime">Preferred Time</label>
+                        <input type="time" id="bookingTime" class="form-control" required>
+                    </div>
+                    <div class="property-actions">
+                        <button type="submit" class="btn btn-primary">Submit Booking</button>
+                        <button type="button" class="btn btn-outline" onclick="closeBookingModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Inquiry Form Modal -->
+        <div id="inquiryModal" class="hidden">
+            <div class="form-container">
+                <h2 class="form-title">Send Inquiry</h2>
+                <form id="inquiryForm">
+                    <div class="form-group">
+                        <label for="inquiryMessage">Your Message</label>
+                        <textarea id="inquiryMessage" class="form-control" rows="4" placeholder="Enter your inquiry..." required></textarea>
+                    </div>
+                    <div class="property-actions">
+                        <button type="submit" class="btn btn-primary">Send Inquiry</button>
+                        <button type="button" class="btn btn-outline" onclick="closeInquiryModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Offer Form Modal -->
+        <div id="offerModal" class="hidden">
+            <div class="form-container">
+                <h2 class="form-title">Make an Offer</h2>
+                <form id="offerForm">
+                    <div class="form-group">
+                        <label for="offerPrice">Offer Price</label>
+                        <input type="number" id="offerPrice" class="form-control" step="0.01" placeholder="Enter your offer" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="offerTerms">Terms & Conditions</label>
+                        <textarea id="offerTerms" class="form-control" rows="3" placeholder="Enter any specific terms..."></textarea>
+                    </div>
+                    <div class="property-actions">
+                        <button type="submit" class="btn btn-primary">Submit Offer</button>
+                        <button type="button" class="btn btn-outline" onclick="closeOfferModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="/js/script.js"></script>
+<script>
+    let currentProperty = null;
+    let currentUser = null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const userStr = localStorage.getItem('currentUser');
+        if (userStr) {
+            currentUser = JSON.parse(userStr);
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const propertyId = urlParams.get('id');
+
+        if (propertyId) {
+            loadPropertyDetails(propertyId);
+        } else {
+            showError('Property ID not provided');
+        }
+
+        // Handle form submissions
+        document.getElementById('bookingForm').addEventListener('submit', handleBookingSubmit);
+        document.getElementById('inquiryForm').addEventListener('submit', handleInquirySubmit);
+        document.getElementById('offerForm').addEventListener('submit', handleOfferSubmit);
+    });
+
+    async function loadPropertyDetails(propertyId) {
+        try {
+            showLoading(true);
+            const property = await fetchPropertyById(propertyId);
+            currentProperty = property;
+            displayPropertyDetails(property);
+            showLoading(false);
+        } catch (error) {
+            showError('Failed to load property details: ' + error.message);
+            showLoading(false);
+        }
+    }
+
+    function displayPropertyDetails(property) {
+        document.getElementById('propertyTitle').textContent = property.title;
+        document.getElementById('propertyLocation').innerHTML = '<i class="fas fa-map-marker-alt"></i> ' + property.location;
+        document.getElementById('propertyType').textContent = property.type;
+        document.getElementById('propertyStatus').textContent = property.status;
+        document.getElementById('propertyStatus').className = `status-badge status-${property.status.toLowerCase()}`;
+
+        const price = property.type === 'SALE' ?
+            `Rs ${property.price?.toLocaleString() || 'N/A'}` :
+            `Rs ${property.rentAmount?.toLocaleString() || 'N/A'}/month`;
+        document.getElementById('propertyPrice').textContent = price;
+
+        document.getElementById('propertyId').textContent = property.id;
+        document.getElementById('propertySeller').textContent = property.sellerUsername || 'N/A';
+        document.getElementById('propertyDate').textContent = new Date(property.createdAt).toLocaleDateString();
+        document.getElementById('propertyDescription').textContent = property.description || 'No description available';
+
+        if (property.type === 'RENT' && property.status === 'AVAILABLE') {
+            document.getElementById('rentalBtn').style.display = 'inline-flex';
+        }
+
+        document.getElementById('propertyDetail').classList.remove('hidden');
+    }
+
+    function bookVisit() {
+        document.getElementById('bookingModal').classList.remove('hidden');
+    }
+
+    function sendInquiry() {
+        document.getElementById('inquiryModal').classList.remove('hidden');
+    }
+
+    function makeOffer() {
+        document.getElementById('offerModal').classList.remove('hidden');
+    }
+
+    function closeBookingModal() {
+        document.getElementById('bookingModal').classList.add('hidden');
+    }
+
+    function closeInquiryModal() {
+        document.getElementById('inquiryModal').classList.add('hidden');
+    }
+
+    function closeOfferModal() {
+        document.getElementById('offerModal').classList.add('hidden');
+    }
+
+    async function handleBookingSubmit(e) {
+        e.preventDefault();
+
+        if (!currentUser || !currentUser.id) {
+            alert('Please login to book a visit');
+            window.location.href = '/login.html';
+            return;
+        }
+
+        try {
+            const bookingData = {
+                propertyId: currentProperty.id,
+                buyerId: currentUser.id, // Auto-populate from logged-in user
+                bookingDate: document.getElementById('bookingDate').value,
+                bookingTime: document.getElementById('bookingTime').value
+            };
+
+            await createBooking(bookingData);
+            alert('Booking submitted successfully!');
+            closeBookingModal();
+            document.getElementById('bookingForm').reset();
+        } catch (error) {
+            alert('Failed to submit booking: ' + error.message);
+        }
+    }
+
+    async function handleInquirySubmit(e) {
+        e.preventDefault();
+
+        if (!currentUser || !currentUser.id) {
+            alert('Please login to send an inquiry');
+            window.location.href = '/login.html';
+            return;
+        }
+
+        try {
+            const inquiryData = {
+                propertyId: currentProperty.id,
+                senderId: currentUser.id, // Auto-populate from logged-in user
+                message: document.getElementById('inquiryMessage').value
+            };
+
+            await createInquiry(inquiryData);
+            alert('Inquiry sent successfully!');
+            closeInquiryModal();
+            document.getElementById('inquiryForm').reset();
+        } catch (error) {
+            alert('Failed to send inquiry: ' + error.message);
+        }
+    }
+
+    async function handleOfferSubmit(e) {
+        e.preventDefault();
+
+        if (!currentUser || !currentUser.id) {
+            alert('Please login to make an offer');
+            window.location.href = '/login.html';
+            return;
+        }
+
+        try {
+            const offerData = {
+                propertyId: currentProperty.id,
+                buyerId: currentUser.id, // Auto-populate from logged-in user
+                price: parseFloat(document.getElementById('offerPrice').value),
+                terms: document.getElementById('offerTerms').value
+            };
+
+            await createOffer(offerData);
+            alert('Offer submitted successfully!');
+            closeOfferModal();
+            document.getElementById('offerForm').reset();
+        } catch (error) {
+            alert('Failed to submit offer: ' + error.message);
+        }
+    }
+
+    function showLoading(show) {
+        document.getElementById('loading').classList.toggle('hidden', !show);
+    }
+
+    function showError(message) {
+        const errorDiv = document.getElementById('error');
+        errorDiv.textContent = message;
+        errorDiv.classList.remove('hidden');
+    }
+
+    function createRental() {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        if (!currentUser.id) {
+            alert('Please login to create a rental agreement');
+            window.location.href = '/login.html';
+            return;
+        }
+
+        // Redirect to agreements page with property ID
+        window.location.href = `/agreements.html?propertyId=${currentProperty.id}`;
+    }
+</script>
+
+<footer class="footer">
+    <div class="container">
+        <p>Copyright 2025 - Project Group 2025-Y2-S1-MLB-B7G2-01</p>
+    </div>
+</footer>
+</body>
+</html>

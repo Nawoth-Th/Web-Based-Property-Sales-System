@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile - PropertyHub</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="header">
+    <nav class="nav">
+        <a href="/" class="logo">PropertyHub</a>
+        <ul class="nav-links">
+            <li><a href="/">Home</a></li>
+            <li><a href="/offers.html">Offers</a></li>
+            <li><a href="/agreements.html">Agreements</a></li>
+            <li><a href="/dashboard.html">Dashboard</a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+    </nav>
+</header>
+
+<main class="container">
+    <h1>User Profile</h1>
+
+    Profile Information Section
+    <section class="profile-section">
+        <h2>Profile Information</h2>
+        <div id="profileLoading" class="loading hidden">Loading profile...</div>
+        <div id="profileError" class="error hidden"></div>
+
+        <form id="profileForm">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="fullName">Full Name</label>
+                <input type="text" id="fullName" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="phone">Phone Number</label>
+                <input type="tel" id="phone" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="currentRole">Current Role</label>
+                <input type="text" id="currentRole" class="form-control" readonly>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Update Profile</button>
+            </div>
+        </form>
+    </section>
+
+    Role Update Section (Admin Only)
+    <section class="role-section" id="roleSection">
+        <h2>Role Management</h2>
+        <p>Update user roles and permissions</p>
+
+        <form id="roleUpdateForm">
+            <div class="form-group">
+                <label for="targetUserId">User ID to Update</label>
+                <input type="number" id="targetUserId" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="newRole">New Role</label>
+                <select id="newRole" class="form-control" required>
+                    <option value="">Select Role</option>
+                    <option value="BUYER">Buyer</option>
+                    <option value="SELLER">Seller</option>
+                    <option value="AGENT">Agent</option>
+                    <option value="ADMIN">Admin</option>
+                </select>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-warning">Update User Role</button>
+            </div>
+        </form>
+    </section>
+
+    Password Change Section
+    <section class="password-section">
+        <h2>Change Password</h2>
+        <form id="passwordForm">
+            <div class="form-group">
+                <label for="currentPassword">Current Password</label>
+                <input type="password" id="currentPassword" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="newPassword">New Password</label>
+                <input type="password" id="newPassword" class="form-control" required minlength="6">
+            </div>
+            <div class="form-group">
+                <label for="confirmPassword">Confirm New Password</label>
+                <input type="password" id="confirmPassword" class="form-control" required minlength="6">
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-secondary">Change Password</button>
+            </div>
+        </form>
+    </section>
+
+    Account Statistics
+    <section class="stats-section">
+        <h2>Account Statistics</h2>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3 id="propertiesCount">0</h3>
+                <p>Properties Listed</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="bookingsCount">0</h3>
+                <p>Bookings Made</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="offersCount">0</h3>
+                <p>Offers Submitted</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="agreementsCount">0</h3>
+                <p>Active Agreements</p>
+            </div>
+        </div>
+    </section>
+</main>
+
+<script src="/js/script.js"></script>
+<script>
+    let currentUser = null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        checkAuth();
+        loadProfile();
+        loadStatistics();
+
+        document.getElementById('profileForm').addEventListener('submit', handleProfileUpdate);
+        document.getElementById('roleUpdateForm').addEventListener('submit', handleRoleUpdate);
+        document.getElementById('passwordForm').addEventListener('submit', handlePasswordChange);
+    });
+
+    function checkAuth() {
+        const userStr = localStorage.getItem('currentUser');
+        if (!userStr) {
+            window.location.href = '/login.html';
+            return;
+        }
+
+        currentUser = JSON.parse(userStr);
+
+        // Show role section only for admins
+        if (currentUser.role !== 'ADMIN') {
+            document.getElementById('roleSection').style.display = 'none';
+        }
+    }
+
+    async function loadProfile() {
+        const loadingEl = document.getElementById('profileLoading');
+        const errorEl = document.getElementById('profileError');
+
+        try {
+            loadingEl.classList.remove('hidden');
+            errorEl.classList.add('hidden');
+
+            const user = await fetchUserById(currentUser.id);
+
+            document.getElementById('username').value = user.username || '';
+            document.getElementById('email').value = user.email || '';
+            document.getElementById('fullName').value = user.fullName || '';
+            document.getElementById('phone').value = user.phone || '';
+            document.getElementById('currentRole').value = user.role || '';
+
+            loadingEl.classList.add('hidden');
+        } catch (error) {
+            console.error('Failed to load profile:', error);
+            loadingEl.classList.add('hidden');
+            errorEl.textContent = 'Failed to load profile: ' + error.message;
+            errorEl.classList.remove('hidden');
+        }
+    }
+
+    async function loadStatistics() {
+        try {
+            // Load properties count
+            if (currentUser.role === 'SELLER' || currentUser.role === 'AGENT' || currentUser.role === 'ADMIN') {
+                const properties = await fetchPropertiesBySeller(currentUser.id);
+                document.getElementById('propertiesCount').textContent = properties.length;
+            }
+
+            // Load bookings count
+            const bookings = await fetchBookingsByBuyer(currentUser.id);
+            document.getElementById('bookingsCount').textContent = bookings.length;
+
+            // Load offers count
+            const offers = await fetchOffersByBuyer(currentUser.id);
+            document.getElementById('offersCount').textContent = offers.length;
+
+            // Load agreements count
+            const agreements = await fetchRentalAgreementsByTenant(currentUser.id);
+            const activeAgreements = agreements.filter(a => a.status === 'ACTIVE');
+            document.getElementById('agreementsCount').textContent = activeAgreements.length;
+        } catch (error) {
+            console.error('Failed to load statistics:', error);
+        }
+    }
+
+    async function handleProfileUpdate(e) {
+        e.preventDefault();
+
+        try {
+            const userData = {
+                username: document.getElementById('username').value,
+                email: document.getElementById('email').value,
+                fullName: document.getElementById('fullName').value,
+                phone: document.getElementById('phone').value
+            };
+
+            const updatedUser = await updateUser(currentUser.id, userData);
+
+            // Update localStorage
+            currentUser = { ...currentUser, ...updatedUser };
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+            alert('Profile updated successfully!');
+        } catch (error) {
+            alert('Failed to update profile: ' + error.message);
+        }
+    }
+
+    async function handleRoleUpdate(e) {
+        e.preventDefault();
+
+        if (!confirm('Are you sure you want to update this user\'s role?')) {
+            return;
+        }
+
+        try {
+            const targetUserId = parseInt(document.getElementById('targetUserId').value);
+            const newRole = document.getElementById('newRole').value;
+
+            await updateUserRole(targetUserId, newRole);
+            alert('User role updated successfully!');
+            document.getElementById('roleUpdateForm').reset();
+        } catch (error) {
+            alert('Failed to update role: ' + error.message);
+        }
+    }
+
+    async function handlePasswordChange(e) {
+        e.preventDefault();
+
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+
+        if (newPassword !== confirmPassword) {
+            alert('New passwords do not match!');
+            return;
+        }
+
+        try {
+            // This would need a backend endpoint
+            alert('Password change functionality requires backend implementation.');
+            document.getElementById('passwordForm').reset();
+        } catch (error) {
+            alert('Failed to change password: ' + error.message);
+        }
+    }
+
+    async function updateUser(userId, userData) {
+        return await apiCall(`/users/${userId}`, {
+            method: 'PUT',
+            body: JSON.stringify(userData)
+        });
+    }
+
+    async function updateUserRole(userId, role) {
+        return await apiCall(`/users/${userId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ role: role })
+        });
+    }
+
+    function logout() {
+        localStorage.removeItem('currentUser');
+        window.location.href = '/login.html';
+    }
+</script>
+
+<footer class="footer">
+    <div class="container">
+        <p>Copyright 2025 - Project Group 2025-Y2-S1-MLB-B7G2-01</p>
+    </div>
+</footer>
+</body>
+</html>
