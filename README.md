@@ -327,6 +327,12 @@ This project serves as an excellent example of:
 ## 👥 Team
 
 **Project Group 2025-Y2-S1-MLB-B7G2-01**
+**Pathirana P.M.K.H - IT24101797**
+**Wathuthanthiri W.M.R.V - IT24101677**
+**Maddegoda M.V.S - IT24101739**
+**Wijayawardena D.K.I - IT24101667**
+**Dissanayake D.M.N.T - IT24102280**
+**Gunasinghe N.A.L - IT24101721**
 
 - **Backend Development**: Java Spring Boot, MySQL, REST APIs
 - **Frontend Development**: HTML5, CSS3, JavaScript ES6+
